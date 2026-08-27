@@ -1,6 +1,6 @@
-# Phase 2 test plan — useful Caption Lens
+# Phase 2 test plan — Caption Lens
 
-Do Phase 1 first if you have not already seen the panel in the glasses (`docs/PHASE_1_TEST_PLAN.md`). Phase 2 adds live speech, speakers, transcripts, Teach me this, and voice commands.
+Do Phase 1 first if you have not already seen the panel in the glasses (`docs/PHASE_1_TEST_PLAN.md`).
 
 Sit for the first pass. This is not a mobility test.
 
@@ -11,58 +11,46 @@ Sit for the first pass. This is not a mobility test.
 - A quiet indoor room
 - Optional: a second person talking, only for the live-mic pass
 
-## A. Simulation (no talking, no microphone)
+## A. Offline demo (no talking, no microphone)
 
-Default mode is **Test — several speakers**.
+Default mode is **Demo — sample captions** (the Phase 1 sample path).
 
-1. Open the app. Confirm **NOT LISTENING** and **Mic: off**.
-2. Tap **Start Listening**. Chip: **LISTENING — TEST MODE**. Still **Mic: off**.
-3. Read three different labels: **Speaker 1**, **Speaker 2**, **Speaker 3** on a short platform/train script. The note must say these are test labels, not real identities.
-4. Tap **Teach me this**. A single help card appears above the captions. It must say it is a local mock.
-5. Say nothing. Tap **Test voice** until it runs **Hide help**. The card goes away.
-6. Tap **Test voice** through **Make it bigger** and **Move subtitles down**. Text grows; the panel moves lower.
-7. Turn **Save transcript** on (under **More**). Wait for a few lines. Turn it off. Tap **Delete session**, then **Delete saved transcript**.
-8. Confirm you were never asked for the microphone.
+1. Open the app. Confirm **NOT LISTENING**, **Mic: off**, and no microphone permission dialog.
+2. Tap **Start Listening**. Chip: **LISTENING — DEMO (MIC OFF)**. Sample lines change. Mic stays off.
+3. Tap **Mode** to **Demo — several speakers**. Start Listening again. Read **Speaker 1 / 2 / 3**. Labels must not be personal names.
+4. Tap **Teach me this**. One help card appears above the captions and says it is a local mock.
+5. Tap **Test voice** until **Hide help**. The card goes away.
+6. **More → Start session**, **Show session**. Confirm lines appear in the session list. **Stop session**, then **Delete session** and **Delete saved transcript**.
+7. You must never have been asked for the microphone.
 
-**Pass** if you can follow a three-speaker script in the glasses, teach/hide works, and the mic stays off.
+**Pass** if demo captions work in the glasses, teach/hide works, session delete works, and the mic stays off.
 
 ## B. Live on-device speech (talking)
 
-Only if the banner says **On-device speech: available**.
+Only if the banner says the on-device engine is ready. If it says **UNAVAILABLE**, skip this section. Do **not** look for a cloud-speech mode — there isn’t one.
 
-1. Tap **Mode** until **Live — on-device speech**.
-2. Tap **Start Listening**. Allow microphone if asked.
-3. Chip must read **LISTENING — ON-DEVICE** and **Mic: on**.
-4. Speak a short sentence. A caption should appear with low delay (partials allowed).
-5. If Speakers are on, labels stay **Speaker 1** / **Speaker 2** and the orange/amber note **Speaker guess uncertain** is visible. The app must not invent a name.
-6. Optionally type a name with **Name this speaker**. That is the only way a personal name appears.
-7. Tap **Stop Listening**. Mic off. Chip **STOPPED**.
+1. Mode **Live — on-device speech**.
+2. Tap **Start Listening**. The microphone permission must appear **now**, not earlier.
+3. Allow it. Chip: **LISTENING — ON-DEVICE**, **Mic: on**.
+4. Speak a short sentence. A caption should appear (partials allowed).
+5. Speakers stay **Speaker 1 / 2**. The **Speaker uncertain** note must be visible. The app must not invent a name.
+6. Tap **Stop Listening**. Mic off.
 
-If on-device speech is **not available**, do not use Live on-device. Stay in Test mode, or read section C.
+If permission is denied, live mode must not listen. Demo modes must still work.
 
-## C. Cloud speech (optional, opt-in only)
+## C. Glasses-on check
 
-Skip unless you intend to send audio to the system cloud recognizer.
+Wear the glasses on default demo mode.
 
-1. **More → Cloud speech: ON**.
-2. Mode **Live — cloud speech**.
-3. Start Listening. Chip must be **orange** and say **LISTENING — CLOUD SPEECH** and that audio may leave the phone.
-4. Stop Listening. Turn **Cloud speech** back off.
+- Can you read **ChipOS AR — Caption Lens** low in view?
+- Tap **Teach me this**. Does the card stay out of the centre?
 
-## D. Glasses-on check (the one that matters)
-
-Wear the glasses with Test mode running.
-
-- Can you read Speaker 1 / 2 / 3 without the card sitting in the middle of your view?
-- After **Teach me this**, is the help card still low, or does it block faces and the floor ahead?
-- Use **Move subtitles down** / **Test voice** if it is too high.
-
-Write phone model, Android version, whether on-device speech was available, and whether glasses mics or the phone mic seemed to be in use.
+Write phone model, Android version, and whether on-device speech was available.
 
 ## Out of scope
 
+- Cloud speech
 - Face recognition
-- True voice biometric diarization
-- A live teaching model
+- Sound Compass
+- Spatial Awareness Assist
 - 6DoF world-locked captions
-- Outdoor navigation

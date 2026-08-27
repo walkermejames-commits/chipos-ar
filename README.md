@@ -104,16 +104,15 @@ Then follow `docs/PHASE_1_TEST_PLAN.md`.
 
 ## Phase 2 Caption Lens
 
-The current APK (`0.2.0-caption-lens`) keeps the Phase 1 panel and adds:
+The current APK (`0.2.0-caption-lens`) keeps the Phase 1 **sample-caption** path as the default offline demo and adds:
 
-- **Test — several speakers** (default): scripted conversation, no microphone.
-- **Test — Phase 1 sample**: original single-speaker sample source.
-- **Live — on-device speech**: Android `SpeechRecognizer.createOnDeviceSpeechRecognizer` after you allow the mic.
-- **Live — cloud speech**: off until **Cloud speech** is opted in. Banner turns orange.
-- Optional pause-based speaker labels (**Speaker 1, 2, …**) with an uncertainty note in live mode. You may type a name; the app will not invent one.
-- Optional local transcript, off by default, with delete-session and delete-saved-file.
-- **Teach me this**: one local mock card. **Cloud AI** opt-in does not upload yet.
-- Voice commands: start captions, stop captions, make it bigger, move subtitles down, teach me this, hide help. **Test voice** runs them without speaking.
+- **Demo — sample captions** (default): original Phase 1 source, microphone off.
+- **Demo — several speakers**: scripted Speaker 1–3 conversation, microphone off.
+- **Live — on-device speech**: Android `createOnDeviceSpeechRecognizer` after you tap Start Listening and allow the mic. If that engine is missing, the app **refuses to listen** and does **not** fall back to cloud speech.
+- Optional pause-based speaker labels (**Speaker 1, 2, …**) with **Speaker uncertain** in live mode. You may type a name; the app will not invent one.
+- Optional local transcript session, off by default: start/stop, show session, delete session, delete saved file. No cloud sync.
+- **Teach me this**: one local mock card with uncertainty wording.
+- Voice-command parser plus **Test voice** for start/stop captions, make it bigger, move subtitles down, teach me this, hide help.
 
 Follow `docs/PHASE_2_TEST_PLAN.md` after the panel is readable in the glasses.
 
@@ -138,8 +137,7 @@ Hardware and tests:
 - No hidden recording. Listening state is on screen at all times.
 - Default mode does not open the microphone.
 - `RECORD_AUDIO` is requested only for live modes, and only when you tap Start Listening.
-- Transcripts are off until you turn **Save transcript** on. Files stay in app-private storage.
-- Cloud speech and cloud AI are opt-in and labelled. Teach me this is still a local mock.
+- Transcripts are off until **Start session**. Files stay in app-private storage.
+- There is no cloud speech path and no silent fallback.
+- Teach me this is a local mock.
 - No face recognition. No stranger identification.
-
-Android’s default (non-on-device) `SpeechRecognizer` may send audio to Google. That path is **Live — cloud speech** only.

@@ -30,9 +30,7 @@ There is no bundled on-device LLM yet, and no live cloud model.
 
 `MockTeachingEngine` reads the last caption and returns a canned brief explanation (travel board, hard-to-read print, a mentioned time, or a generic “repeat the concrete nouns” fallback).
 
-If **Cloud AI** is opted in, the card still stays local and states: *Cloud AI is switched on, but no remote model is connected yet, so this card is still a local mock. Nothing was uploaded.*
-
-That keeps the opt-in honest without quietly sending speech.
+Phase 2 does not send caption text or audio anywhere. The card always says it is a local mock.
 
 ## Later live model (not this build)
 
