@@ -1,5 +1,8 @@
 package com.chipos.ar.captionlens
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,17 +20,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,8 +50,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.chipos.ar.caption.CaptionMode
 import com.chipos.ar.overlay.ContrastMode
 import com.chipos.ar.overlay.PanelPosition
+import com.chipos.ar.teach.TeachingCard
 
 private val ChipOsDark = darkColorScheme(
     background = Color(0xFF05070A),
@@ -62,8 +75,17 @@ fun CaptionLensScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val palette = paletteFor(state.contrast)
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> viewModel.onMicPermissionResult(granted) }
+
     LaunchedEffect(state.listening) {
         viewModel.refreshDisplays()
+    }
+    LaunchedEffect(state.needsMicPermission) {
+        if (state.needsMicPermission) {
+            micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     Box(
@@ -78,18 +100,30 @@ fun CaptionLensScreen(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(12.dp)
-                .widthIn(max = 520.dp),
+                .widthIn(max = 560.dp),
         )
 
-        CaptionCard(
-            state = state,
-            palette = palette,
+        Column(
             modifier = Modifier
                 .align(alignmentFor(state.panelPosition))
                 .padding(horizontal = 16.dp, vertical = bottomPaddingFor(state.panelPosition))
                 .fillMaxWidth(widthFor(state.panelPosition))
                 .widthIn(max = 900.dp),
-        )
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            state.teachingCard?.let { card ->
+                TeachingCardView(
+                    card = card,
+                    palette = palette,
+                    scale = state.textScale.multiplier,
+                    onHide = viewModel::hideHelp,
+                )
+            }
+            CaptionCard(
+                state = state,
+                palette = palette,
+            )
+        }
 
         ControlDock(
             state = state,
@@ -100,10 +134,31 @@ fun CaptionLensScreen(
             onLarger = viewModel::largerText,
             onContrast = viewModel::cycleContrast,
             onPosition = viewModel::cyclePosition,
+            onMode = viewModel::cycleMode,
+            onTeach = viewModel::teachMeThis,
+            onHideHelp = viewModel::hideHelp,
+            onMore = viewModel::toggleMore,
+            onDiarization = viewModel::toggleDiarization,
+            onSave = viewModel::toggleSaveTranscript,
+            onDeleteSession = viewModel::deleteCurrentSession,
+            onDeleteSaved = viewModel::deleteSavedTranscript,
+            onNameSpeaker = viewModel::openNameSpeakerDialog,
+            onTestVoice = viewModel::simulateNextVoiceCommand,
+            onCloudSpeech = viewModel::toggleCloudSpeechOptIn,
+            onCloudAi = viewModel::toggleCloudAiOptIn,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .navigationBarsPadding(),
+        )
+    }
+
+    if (state.nameSpeakerDialog) {
+        NameSpeakerDialog(
+            currentLabel = state.currentLine?.speakerLabel ?: "Speaker",
+            onDismiss = viewModel::dismissNameSpeakerDialog,
+            onConfirm = viewModel::nameCurrentSpeaker,
+            palette = palette,
         )
     }
 }
@@ -114,23 +169,30 @@ private fun ListeningBanner(
     palette: CaptionPalette,
     modifier: Modifier = Modifier,
 ) {
+    val listening = state.listening == ListeningState.Listening
     val indicatorColor by animateColorAsState(
-        targetValue = when (state.listening) {
-            ListeningState.Listening -> Color(0xFF3DDB84)
-            ListeningState.Stopped -> Color(0xFFE0A325)
-            ListeningState.Idle -> Color(0xFF8A8F99)
+        targetValue = when {
+            listening && state.captionMode == CaptionMode.LiveCloud -> Color(0xFFFF8A4C)
+            listening -> Color(0xFF3DDB84)
+            state.listening == ListeningState.Stopped -> Color(0xFFE0A325)
+            else -> Color(0xFF8A8F99)
         },
         label = "listening-indicator",
     )
-    val statusText = when (state.listening) {
-        ListeningState.Idle -> "NOT LISTENING"
-        ListeningState.Listening -> "LISTENING — SAMPLE TEXT"
-        ListeningState.Stopped -> "STOPPED"
+    val statusText = when {
+        !listening && state.listening == ListeningState.Idle -> "NOT LISTENING"
+        !listening -> "STOPPED"
+        state.captionMode == CaptionMode.LiveCloud -> "LISTENING — CLOUD SPEECH"
+        state.captionMode == CaptionMode.LiveOnDevice -> "LISTENING — ON-DEVICE"
+        else -> "LISTENING — TEST MODE"
     }
-    val privacy = when (state.listening) {
-        ListeningState.Idle -> "Microphone is off. Sample captions only. Nothing is recorded."
-        ListeningState.Listening -> "Listening light is on. Microphone is still off. No audio is captured or sent anywhere."
-        ListeningState.Stopped -> "Listening stopped. Microphone is off."
+    val privacy = when {
+        !listening -> "Microphone is off."
+        state.captionMode.recordsAudio && state.captionMode == CaptionMode.LiveCloud ->
+            "Microphone is on. Cloud speech may send audio off this phone."
+        state.captionMode.recordsAudio ->
+            "Microphone is on. On-device speech. Audio is not uploaded by this app."
+        else -> "Microphone is off. Scripted or sample captions. Nothing is recorded."
     }
 
     Column(
@@ -161,13 +223,9 @@ private fun ListeningBanner(
                 fontSize = 16.sp,
             )
         }
+        Text(text = privacy, color = palette.fg, fontSize = 13.sp)
         Text(
-            text = privacy,
-            color = palette.fg,
-            fontSize = 13.sp,
-        )
-        Text(
-            text = "${state.sourceName}  ·  Mic: off  ·  Displays: ${state.displayCount}",
+            text = "${state.sourceName}  ·  Mic: ${if (state.recordsAudio && listening) "on" else "off"}  ·  Displays: ${state.displayCount}",
             color = palette.fg.copy(alpha = 0.8f),
             fontSize = 12.sp,
         )
@@ -176,6 +234,22 @@ private fun ListeningBanner(
             color = palette.fg.copy(alpha = 0.7f),
             fontSize = 11.sp,
         )
+        if (state.speechError != null) {
+            Text(text = state.speechError!!, color = Color(0xFFFF8A80), fontSize = 12.sp)
+        }
+        if (state.lastVoiceCommand != null) {
+            Text(
+                text = "Voice command: ${state.lastVoiceCommand}",
+                color = palette.fg,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        if (state.onDeviceSpeechAvailable) {
+            Text(text = "On-device speech: available", color = palette.fg.copy(alpha = 0.75f), fontSize = 11.sp)
+        } else {
+            Text(text = "On-device speech: not available on this phone", color = palette.fg.copy(alpha = 0.75f), fontSize = 11.sp)
+        }
     }
 }
 
@@ -183,14 +257,14 @@ private fun ListeningBanner(
 private fun CaptionCard(
     state: CaptionUiState,
     palette: CaptionPalette,
-    modifier: Modifier = Modifier,
 ) {
     val scale = state.textScale.multiplier
     val body = state.currentLine?.text ?: "Captions will appear here."
     val speaker = state.currentLine?.speakerLabel
 
     Column(
-        modifier = modifier
+        modifier = Modifier
+            .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .background(palette.card)
             .border(2.dp, palette.border, RoundedCornerShape(18.dp))
@@ -206,7 +280,7 @@ private fun CaptionCard(
         )
         if (speaker != null) {
             Text(
-                text = speaker,
+                text = speaker + if (state.currentLine?.isPartial == true) " …" else "",
                 color = palette.fg.copy(alpha = 0.85f),
                 fontSize = (14 * scale).sp,
                 fontWeight = FontWeight.Medium,
@@ -219,6 +293,61 @@ private fun CaptionCard(
             fontWeight = FontWeight.Bold,
             lineHeight = (32 * scale).sp,
         )
+        if (state.diarizationEnabled && state.speakerNote != null) {
+            Text(
+                text = state.speakerNote!!,
+                color = if (state.speakerUncertain) Color(0xFFFFB74D) else palette.fg.copy(alpha = 0.8f),
+                fontSize = (13 * scale).sp,
+                fontWeight = if (state.speakerUncertain) FontWeight.SemiBold else FontWeight.Normal,
+            )
+        }
+        Text(
+            text = sessionFooter(state),
+            color = palette.fg.copy(alpha = 0.75f),
+            fontSize = 12.sp,
+        )
+    }
+}
+
+@Composable
+private fun TeachingCardView(
+    card: TeachingCard,
+    palette: CaptionPalette,
+    scale: Float,
+    onHide: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(palette.card)
+            .border(2.dp, palette.accent, RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = card.title,
+            color = palette.fg,
+            fontWeight = FontWeight.Bold,
+            fontSize = (16 * scale).sp,
+        )
+        Text(
+            text = card.body,
+            color = palette.fg,
+            fontSize = (16 * scale).sp,
+            lineHeight = (22 * scale).sp,
+        )
+        Text(
+            text = "About: ${card.sourceLine}",
+            color = palette.fg.copy(alpha = 0.8f),
+            fontSize = 12.sp,
+        )
+        Text(
+            text = card.uncertainty,
+            color = palette.fg.copy(alpha = 0.85f),
+            fontSize = 12.sp,
+        )
+        DockButton(label = "Hide help", onClick = onHide, palette = palette)
     }
 }
 
@@ -233,54 +362,124 @@ private fun ControlDock(
     onLarger: () -> Unit,
     onContrast: () -> Unit,
     onPosition: () -> Unit,
+    onMode: () -> Unit,
+    onTeach: () -> Unit,
+    onHideHelp: () -> Unit,
+    onMore: () -> Unit,
+    onDiarization: () -> Unit,
+    onSave: () -> Unit,
+    onDeleteSession: () -> Unit,
+    onDeleteSaved: () -> Unit,
+    onNameSpeaker: () -> Unit,
+    onTestVoice: () -> Unit,
+    onCloudSpeech: () -> Unit,
+    onCloudAi: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = palette.dock,
-        modifier = modifier,
-    ) {
-        FlowRow(
+    val listening = state.listening == ListeningState.Listening
+    Surface(color = palette.dock, modifier = modifier) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+                .heightIn(max = 240.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            val listening = state.listening == ListeningState.Listening
-            DockButton(
-                label = "Start Listening",
-                onClick = onStart,
-                emphasized = !listening,
-                palette = palette,
-                enabled = !listening,
-            )
-            DockButton(
-                label = "Stop Listening",
-                onClick = onStop,
-                emphasized = listening,
-                palette = palette,
-                enabled = listening,
-            )
-            DockButton(label = "Text −", onClick = onSmaller, palette = palette)
-            DockButton(label = "Text +", onClick = onLarger, palette = palette)
-            DockButton(
-                label = "Contrast: ${state.contrast.label}",
-                onClick = onContrast,
-                palette = palette,
-            )
-            DockButton(
-                label = "Panel: ${state.panelPosition.label}",
-                onClick = onPosition,
-                palette = palette,
-            )
-            Text(
-                text = "Text ${state.textScale.label}",
-                color = palette.fg,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(top = 10.dp),
-            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                DockButton("Start Listening", onStart, palette, emphasized = !listening, enabled = !listening)
+                DockButton("Stop Listening", onStop, palette, emphasized = listening, enabled = listening)
+                DockButton("Mode: ${state.captionMode.label}", onMode, palette)
+                DockButton("Text −", onSmaller, palette)
+                DockButton("Text +", onLarger, palette)
+                DockButton("Contrast: ${state.contrast.label}", onContrast, palette)
+                DockButton("Panel: ${state.panelPosition.label}", onPosition, palette)
+                DockButton("Teach me this", onTeach, palette)
+                DockButton("Hide help", onHideHelp, palette)
+                DockButton(if (state.moreOpen) "Less" else "More", onMore, palette)
+            }
+            if (state.moreOpen) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    DockButton(
+                        if (state.diarizationEnabled) "Speakers: on" else "Speakers: off",
+                        onDiarization,
+                        palette,
+                    )
+                    DockButton(
+                        if (state.saveTranscript) "Save transcript: on" else "Save transcript: off",
+                        onSave,
+                        palette,
+                    )
+                    DockButton("Delete session", onDeleteSession, palette)
+                    DockButton(
+                        "Delete saved transcript",
+                        onDeleteSaved,
+                        palette,
+                        enabled = state.savedTranscriptExists,
+                    )
+                    DockButton(
+                        "Name this speaker",
+                        onNameSpeaker,
+                        palette,
+                        enabled = state.currentLine?.speakerId != null,
+                    )
+                    DockButton("Test voice: ${state.nextVoiceCommand.label}", onTestVoice, palette)
+                    DockButton(
+                        if (state.cloudSpeechOptIn) "Cloud speech: ON" else "Cloud speech: off",
+                        onCloudSpeech,
+                        palette,
+                        emphasized = state.cloudSpeechOptIn,
+                    )
+                    DockButton(
+                        if (state.cloudAiOptIn) "Cloud AI: ON (still mock)" else "Cloud AI: off",
+                        onCloudAi,
+                        palette,
+                        emphasized = state.cloudAiOptIn,
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun NameSpeakerDialog(
+    currentLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+    palette: CaptionPalette,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Name $currentLabel") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Only type a name you already know. The app will not identify strangers.")
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name for this speaker") },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+        containerColor = palette.card,
+        titleContentColor = palette.fg,
+        textContentColor = palette.fg,
+    )
 }
 
 @Composable
@@ -350,7 +549,10 @@ private fun paletteFor(mode: ContrastMode): CaptionPalette = when (mode) {
 }
 
 private fun alignmentFor(position: PanelPosition): Alignment = when (position) {
-    PanelPosition.BottomCenter, PanelPosition.LowerCenter -> Alignment.BottomCenter
+    PanelPosition.BottomCenter,
+    PanelPosition.LowerCenter,
+    PanelPosition.LowestCenter,
+    -> Alignment.BottomCenter
     PanelPosition.BottomLeft -> Alignment.BottomStart
     PanelPosition.BottomRight -> Alignment.BottomEnd
 }
@@ -361,6 +563,13 @@ private fun widthFor(position: PanelPosition): Float = when (position) {
 }
 
 private fun bottomPaddingFor(position: PanelPosition) = when (position) {
-    PanelPosition.LowerCenter -> 118.dp
-    else -> 92.dp
+    PanelPosition.LowerCenter -> 132.dp
+    PanelPosition.BottomCenter, PanelPosition.BottomLeft, PanelPosition.BottomRight -> 96.dp
+    PanelPosition.LowestCenter -> 72.dp
+}
+
+private fun sessionFooter(state: CaptionUiState): String {
+    val save = if (state.saveTranscript) "Saving locally" else "Transcript off"
+    val saved = if (state.savedTranscriptExists) "saved file yes" else "saved file no"
+    return "Session lines: ${state.sessionLineCount}  ·  $save  ·  $saved"
 }

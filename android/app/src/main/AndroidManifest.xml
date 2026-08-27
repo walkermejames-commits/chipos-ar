@@ -2,10 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-      Phase 1 does not capture audio. RECORD_AUDIO is intentionally absent.
-      Add it only when an on-device caption source is wired and the wearer
-      has tapped Start Listening.
+      RECORD_AUDIO is declared for live caption modes. The app does not open
+      the microphone until the wearer taps Start Listening in a live mode.
+      Test modes never use it. There is no INTERNET permission.
     -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <uses-feature
         android:name="android.hardware.microphone"
         android:required="false" />

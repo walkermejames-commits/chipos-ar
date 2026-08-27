@@ -5,15 +5,23 @@ package com.chipos.ar.overlay
  * display so the centre of vision stays clear.
  */
 enum class PanelPosition(val label: String) {
+    LowerCenter("Lower centre"),
     BottomCenter("Bottom centre"),
     BottomLeft("Bottom left"),
     BottomRight("Bottom right"),
-    LowerCenter("Lower centre"),
+    LowestCenter("Lowest centre"),
     ;
 
     fun next(): PanelPosition {
         val values = entries
         return values[(ordinal + 1) % values.size]
+    }
+
+    /** Move the card toward the bottom edge, away from the centre of vision. */
+    fun moveDown(): PanelPosition = when (this) {
+        LowerCenter -> BottomCenter
+        BottomLeft, BottomRight, BottomCenter -> LowestCenter
+        LowestCenter -> LowestCenter
     }
 }
 
