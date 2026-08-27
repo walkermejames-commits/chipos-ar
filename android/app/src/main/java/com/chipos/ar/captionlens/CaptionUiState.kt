@@ -20,20 +20,21 @@ data class CaptionUiState(
     val textScale: TextScale = TextScale.Large,
     val contrast: ContrastMode = ContrastMode.High,
     val panelPosition: PanelPosition = PanelPosition.BottomCenter,
-    val captionMode: CaptionMode = CaptionMode.TestScripted,
+    val captionMode: CaptionMode = CaptionMode.TestSample,
     val recordsAudio: Boolean = false,
-    val sourceName: String = CaptionMode.TestScripted.label,
+    val sourceName: String = CaptionMode.TestSample.label,
     val displayCount: Int = 1,
     val displaySummary: String = "not probed",
     val onDeviceSpeechAvailable: Boolean = false,
-    val cloudSpeechOptIn: Boolean = false,
-    val cloudAiOptIn: Boolean = false,
+    val engineStatus: String = "Engine: not started",
     val diarizationEnabled: Boolean = true,
     val speakerUncertain: Boolean = false,
     val speakerNote: String? = null,
-    val saveTranscript: Boolean = false,
-    val sessionLineCount: Int = 0,
+    val transcriptSessionOn: Boolean = false,
+    val sessionLines: List<CaptionLine> = emptyList(),
     val savedTranscriptExists: Boolean = false,
+    val savedTranscriptPreview: String = "",
+    val showSession: Boolean = false,
     val teachingCard: TeachingCard? = null,
     val lastVoiceCommand: String? = null,
     val needsMicPermission: Boolean = false,
@@ -45,4 +46,6 @@ data class CaptionUiState(
 ) {
     val nextVoiceCommand: VoiceCommand
         get() = VoiceCommand.entries[voiceCommandIndex % VoiceCommand.entries.size]
+
+    val sessionLineCount: Int get() = sessionLines.size
 }

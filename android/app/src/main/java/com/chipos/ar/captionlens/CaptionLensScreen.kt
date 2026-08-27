@@ -123,6 +123,9 @@ fun CaptionLensScreen(
                 state = state,
                 palette = palette,
             )
+            if (state.showSession) {
+                SessionPanel(state = state, palette = palette)
+            }
         }
 
         ControlDock(
@@ -139,13 +142,13 @@ fun CaptionLensScreen(
             onHideHelp = viewModel::hideHelp,
             onMore = viewModel::toggleMore,
             onDiarization = viewModel::toggleDiarization,
-            onSave = viewModel::toggleSaveTranscript,
+            onStartSession = viewModel::startTranscriptSession,
+            onStopSession = viewModel::stopTranscriptSession,
+            onShowSession = viewModel::toggleShowSession,
             onDeleteSession = viewModel::deleteCurrentSession,
             onDeleteSaved = viewModel::deleteSavedTranscript,
             onNameSpeaker = viewModel::openNameSpeakerDialog,
             onTestVoice = viewModel::simulateNextVoiceCommand,
-            onCloudSpeech = viewModel::toggleCloudSpeechOptIn,
-            onCloudAi = viewModel::toggleCloudAiOptIn,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
@@ -172,7 +175,7 @@ private fun ListeningBanner(
     val listening = state.listening == ListeningState.Listening
     val indicatorColor by animateColorAsState(
         targetValue = when {
-            listening && state.captionMode == CaptionMode.LiveCloud -> Color(0xFFFF8A4C)
+            listening && state.captionMode == CaptionMode.LiveOnDevice -> Color(0xFF3DDB84)
             listening -> Color(0xFF3DDB84)
             state.listening == ListeningState.Stopped -> Color(0xFFE0A325)
             else -> Color(0xFF8A8F99)
@@ -182,17 +185,14 @@ private fun ListeningBanner(
     val statusText = when {
         !listening && state.listening == ListeningState.Idle -> "NOT LISTENING"
         !listening -> "STOPPED"
-        state.captionMode == CaptionMode.LiveCloud -> "LISTENING — CLOUD SPEECH"
         state.captionMode == CaptionMode.LiveOnDevice -> "LISTENING — ON-DEVICE"
-        else -> "LISTENING — TEST MODE"
+        else -> "LISTENING — DEMO (MIC OFF)"
     }
     val privacy = when {
         !listening -> "Microphone is off."
-        state.captionMode.recordsAudio && state.captionMode == CaptionMode.LiveCloud ->
-            "Microphone is on. Cloud speech may send audio off this phone."
         state.captionMode.recordsAudio ->
-            "Microphone is on. On-device speech. Audio is not uploaded by this app."
-        else -> "Microphone is off. Scripted or sample captions. Nothing is recorded."
+            "Microphone is on. On-device speech only. Audio is not uploaded. Cloud speech is not used."
+        else -> "Microphone is off. Sample or scripted captions. Nothing is recorded."
     }
 
     Column(
@@ -245,10 +245,13 @@ private fun ListeningBanner(
                 fontWeight = FontWeight.Medium,
             )
         }
-        if (state.onDeviceSpeechAvailable) {
-            Text(text = "On-device speech: available", color = palette.fg.copy(alpha = 0.75f), fontSize = 11.sp)
-        } else {
-            Text(text = "On-device speech: not available on this phone", color = palette.fg.copy(alpha = 0.75f), fontSize = 11.sp)
+        Text(text = state.engineStatus, color = palette.fg, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        if (!state.onDeviceSpeechAvailable) {
+            Text(
+                text = "Local speech engine unavailable. No cloud fallback.",
+                color = Color(0xFFFFB74D),
+                fontSize = 12.sp,
+            )
         }
     }
 }
@@ -351,6 +354,46 @@ private fun TeachingCardView(
     }
 }
 
+@Composable
+private fun SessionPanel(
+    state: CaptionUiState,
+    palette: CaptionPalette,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 140.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(palette.card.copy(alpha = 0.95f))
+            .border(1.dp, palette.border, RoundedCornerShape(14.dp))
+            .padding(12.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = if (state.transcriptSessionOn) "Current session (recording locally)" else "Current session (not recording)",
+            color = palette.fg,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+        )
+        if (state.sessionLines.isEmpty()) {
+            Text(text = "No session lines yet.", color = palette.fg.copy(alpha = 0.75f), fontSize = 12.sp)
+        } else {
+            state.sessionLines.takeLast(12).forEach { line ->
+                val who = line.speakerLabel ?: "Caption"
+                Text(text = "$who: ${line.text}", color = palette.fg, fontSize = 12.sp)
+            }
+        }
+        if (state.savedTranscriptExists) {
+            Text(
+                text = "Saved file on this phone:\n${state.savedTranscriptPreview}",
+                color = palette.fg.copy(alpha = 0.8f),
+                fontSize = 11.sp,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ControlDock(
@@ -367,13 +410,13 @@ private fun ControlDock(
     onHideHelp: () -> Unit,
     onMore: () -> Unit,
     onDiarization: () -> Unit,
-    onSave: () -> Unit,
+    onStartSession: () -> Unit,
+    onStopSession: () -> Unit,
+    onShowSession: () -> Unit,
     onDeleteSession: () -> Unit,
     onDeleteSaved: () -> Unit,
     onNameSpeaker: () -> Unit,
     onTestVoice: () -> Unit,
-    onCloudSpeech: () -> Unit,
-    onCloudAi: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listening = state.listening == ListeningState.Listening
@@ -412,8 +455,22 @@ private fun ControlDock(
                         palette,
                     )
                     DockButton(
-                        if (state.saveTranscript) "Save transcript: on" else "Save transcript: off",
-                        onSave,
+                        "Start session",
+                        onStartSession,
+                        palette,
+                        emphasized = !state.transcriptSessionOn,
+                        enabled = !state.transcriptSessionOn,
+                    )
+                    DockButton(
+                        "Stop session",
+                        onStopSession,
+                        palette,
+                        emphasized = state.transcriptSessionOn,
+                        enabled = state.transcriptSessionOn,
+                    )
+                    DockButton(
+                        if (state.showSession) "Hide session" else "Show session",
+                        onShowSession,
                         palette,
                     )
                     DockButton("Delete session", onDeleteSession, palette)
@@ -430,18 +487,6 @@ private fun ControlDock(
                         enabled = state.currentLine?.speakerId != null,
                     )
                     DockButton("Test voice: ${state.nextVoiceCommand.label}", onTestVoice, palette)
-                    DockButton(
-                        if (state.cloudSpeechOptIn) "Cloud speech: ON" else "Cloud speech: off",
-                        onCloudSpeech,
-                        palette,
-                        emphasized = state.cloudSpeechOptIn,
-                    )
-                    DockButton(
-                        if (state.cloudAiOptIn) "Cloud AI: ON (still mock)" else "Cloud AI: off",
-                        onCloudAi,
-                        palette,
-                        emphasized = state.cloudAiOptIn,
-                    )
                 }
             }
         }
@@ -569,7 +614,7 @@ private fun bottomPaddingFor(position: PanelPosition) = when (position) {
 }
 
 private fun sessionFooter(state: CaptionUiState): String {
-    val save = if (state.saveTranscript) "Saving locally" else "Transcript off"
+    val rec = if (state.transcriptSessionOn) "session ON" else "session off"
     val saved = if (state.savedTranscriptExists) "saved file yes" else "saved file no"
-    return "Session lines: ${state.sessionLineCount}  ·  $save  ·  $saved"
+    return "Session lines: ${state.sessionLineCount}  ·  $rec  ·  $saved"
 }

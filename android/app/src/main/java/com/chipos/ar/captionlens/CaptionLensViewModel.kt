@@ -13,13 +13,13 @@ import androidx.lifecycle.viewModelScope
 import com.chipos.ar.caption.CaptionLine
 import com.chipos.ar.caption.CaptionMode
 import com.chipos.ar.caption.CaptionSource
+import com.chipos.ar.caption.LocalSpeechUnavailableException
 import com.chipos.ar.caption.OnDeviceSpeech
 import com.chipos.ar.caption.SampleCaptionSource
 import com.chipos.ar.caption.ScriptedConversationSource
 import com.chipos.ar.caption.SpeechCaptionSource
 import com.chipos.ar.diarization.SpeakerDirectory
 import com.chipos.ar.diarization.TurnDiarizer
-import com.chipos.ar.overlay.PanelPosition
 import com.chipos.ar.teach.MockTeachingEngine
 import com.chipos.ar.transcript.TranscriptStore
 import com.chipos.ar.voice.VoiceCommand
@@ -50,21 +50,21 @@ class CaptionLensViewModel(
         override fun onDisplayChanged(displayId: Int) = refreshDisplays()
     }
 
-    private var captionSource: CaptionSource = ScriptedConversationSource()
+    private var captionSource: CaptionSource = SampleCaptionSource()
     private var collectJob: Job? = null
     private val sessionLines = mutableListOf<CaptionLine>()
 
     private val _uiState = MutableStateFlow(
         CaptionUiState(
-            captionMode = CaptionMode.TestScripted,
+            captionMode = CaptionMode.TestSample,
             recordsAudio = false,
-            sourceName = CaptionMode.TestScripted.label,
+            sourceName = CaptionMode.TestSample.label,
             onDeviceSpeechAvailable = OnDeviceSpeech.isAvailable(application),
-            cloudSpeechOptIn = prefs.getBoolean(KEY_CLOUD_SPEECH, false),
-            cloudAiOptIn = prefs.getBoolean(KEY_CLOUD_AI, false),
+            engineStatus = engineStatusLabel(OnDeviceSpeech.isAvailable(application)),
             diarizationEnabled = prefs.getBoolean(KEY_DIARIZATION, true),
-            saveTranscript = prefs.getBoolean(KEY_SAVE_TRANSCRIPT, false),
+            transcriptSessionOn = false,
             savedTranscriptExists = transcripts.hasSavedTranscript(),
+            savedTranscriptPreview = transcripts.savedPreview(),
         ),
     )
     val uiState: StateFlow<CaptionUiState> = _uiState.asStateFlow()
@@ -86,38 +86,35 @@ class CaptionLensViewModel(
 
     fun startListening() {
         if (_uiState.value.listening == ListeningState.Listening) return
-        val state = _uiState.value
-        val mode = state.captionMode
-        if (mode.recordsAudio && !hasMicPermission()) {
-            _uiState.update { it.copy(needsMicPermission = true, speechError = null) }
-            return
-        }
+        val mode = _uiState.value.captionMode
         if (mode == CaptionMode.LiveOnDevice && !OnDeviceSpeech.isAvailable(getApplication())) {
             _uiState.update {
                 it.copy(
-                    speechError = "On-device speech is not available on this phone. Use Test mode, or opt in to cloud speech.",
+                    speechError = "On-device speech engine is unavailable on this phone. Cloud speech is not used. Stay on Demo — sample captions.",
+                    engineStatus = engineStatusLabel(false),
+                    recordsAudio = false,
                 )
             }
             return
         }
-        if (mode == CaptionMode.LiveCloud && !state.cloudSpeechOptIn) {
-            _uiState.update {
-                it.copy(speechError = "Cloud speech stays off until you opt in.")
-            }
-            return
-        }
-        if (mode == CaptionMode.LiveCloud &&
-            !OnDeviceSpeech.isLegacyRecognizerAvailable(getApplication())
-        ) {
-            _uiState.update {
-                it.copy(speechError = "No system speech recognizer is installed on this phone.")
-            }
+        if (mode.recordsAudio && !hasMicPermission()) {
+            _uiState.update { it.copy(needsMicPermission = true, speechError = null) }
             return
         }
         viewModelScope.launch {
             turnDiarizer.reset()
             try {
                 captionSource.start()
+            } catch (error: LocalSpeechUnavailableException) {
+                _uiState.update {
+                    it.copy(
+                        listening = ListeningState.Idle,
+                        recordsAudio = false,
+                        speechError = error.message,
+                        engineStatus = engineStatusLabel(false),
+                    )
+                }
+                return@launch
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(
@@ -135,6 +132,11 @@ class CaptionLensViewModel(
                     speechError = null,
                     micPermissionDenied = false,
                     lastVoiceCommand = null,
+                    engineStatus = if (captionSource.recordsAudio) {
+                        "Engine: on-device SpeechRecognizer (local-first)"
+                    } else {
+                        "Engine: offline demo — microphone off"
+                    },
                 )
             }
         }
@@ -143,14 +145,15 @@ class CaptionLensViewModel(
     fun stopListening() {
         viewModelScope.launch {
             captionSource.stop()
-            if (_uiState.value.saveTranscript && sessionLines.isNotEmpty()) {
-                transcripts.save(sessionLines.toList())
-            }
             _uiState.update {
                 it.copy(
                     listening = ListeningState.Stopped,
-                    savedTranscriptExists = transcripts.hasSavedTranscript(),
                     recordsAudio = false,
+                    engineStatus = if (it.captionMode.recordsAudio) {
+                        engineStatusLabel(OnDeviceSpeech.isAvailable(getApplication()))
+                    } else {
+                        "Engine: offline demo — microphone off"
+                    },
                 )
             }
         }
@@ -161,19 +164,18 @@ class CaptionLensViewModel(
             it.copy(
                 needsMicPermission = false,
                 micPermissionDenied = !granted,
-                speechError = if (granted) null else "Microphone permission denied. Test mode still works without it.",
+                speechError = if (granted) {
+                    null
+                } else {
+                    "Microphone permission denied. Demo modes still work without it. Cloud speech is not used."
+                },
             )
         }
         if (granted) startListening()
     }
 
     fun cycleMode() {
-        val current = _uiState.value.captionMode
-        var next = current.next()
-        if (next == CaptionMode.LiveCloud && !_uiState.value.cloudSpeechOptIn) {
-            next = CaptionMode.TestScripted
-        }
-        setMode(next)
+        setMode(_uiState.value.captionMode.next())
     }
 
     fun setMode(mode: CaptionMode) {
@@ -182,17 +184,29 @@ class CaptionLensViewModel(
             captionSource.stop()
             captionSource = createSource(mode)
             bindSource()
+            val available = OnDeviceSpeech.isAvailable(getApplication())
             _uiState.update {
                 it.copy(
                     captionMode = mode,
                     sourceName = mode.label,
                     recordsAudio = false,
                     listening = if (wasListening) ListeningState.Stopped else it.listening,
-                    speechError = null,
+                    speechError = if (mode == CaptionMode.LiveOnDevice && !available) {
+                        "On-device speech engine is unavailable on this phone. Cloud speech is not used."
+                    } else {
+                        null
+                    },
                     currentLine = null,
+                    engineStatus = if (mode.recordsAudio) {
+                        engineStatusLabel(available)
+                    } else {
+                        "Engine: offline demo — microphone off"
+                    },
                 )
             }
-            if (wasListening) startListening()
+            if (wasListening && (mode.recordsAudio.not() || available)) {
+                startListening()
+            }
         }
     }
 
@@ -228,25 +242,45 @@ class CaptionLensViewModel(
         }
     }
 
-    fun toggleSaveTranscript() {
-        val enabled = !_uiState.value.saveTranscript
-        prefs.edit().putBoolean(KEY_SAVE_TRANSCRIPT, enabled).apply()
-        _uiState.update { it.copy(saveTranscript = enabled) }
+    fun startTranscriptSession() {
+        _uiState.update { it.copy(transcriptSessionOn = true, showSession = true) }
     }
 
-    fun toggleCloudSpeechOptIn() {
-        val enabled = !_uiState.value.cloudSpeechOptIn
-        prefs.edit().putBoolean(KEY_CLOUD_SPEECH, enabled).apply()
-        _uiState.update { it.copy(cloudSpeechOptIn = enabled) }
-        if (!enabled && _uiState.value.captionMode == CaptionMode.LiveCloud) {
-            setMode(CaptionMode.TestScripted)
+    fun stopTranscriptSession() {
+        if (sessionLines.isNotEmpty()) {
+            transcripts.save(sessionLines.toList())
+        }
+        _uiState.update {
+            it.copy(
+                transcriptSessionOn = false,
+                savedTranscriptExists = transcripts.hasSavedTranscript(),
+                savedTranscriptPreview = transcripts.savedPreview(),
+            )
         }
     }
 
-    fun toggleCloudAiOptIn() {
-        val enabled = !_uiState.value.cloudAiOptIn
-        prefs.edit().putBoolean(KEY_CLOUD_AI, enabled).apply()
-        _uiState.update { it.copy(cloudAiOptIn = enabled) }
+    fun toggleShowSession() {
+        _uiState.update { it.copy(showSession = !it.showSession) }
+    }
+
+    fun deleteCurrentSession() {
+        sessionLines.clear()
+        _uiState.update {
+            it.copy(
+                sessionLines = emptyList(),
+                currentLine = it.currentLine,
+            )
+        }
+    }
+
+    fun deleteSavedTranscript() {
+        transcripts.deleteSaved()
+        _uiState.update {
+            it.copy(
+                savedTranscriptExists = false,
+                savedTranscriptPreview = "",
+            )
+        }
     }
 
     fun toggleMore() {
@@ -255,28 +289,12 @@ class CaptionLensViewModel(
 
     fun teachMeThis() {
         val text = _uiState.value.currentLine?.text.orEmpty()
-        val card = teaching.explain(text, _uiState.value.cloudAiOptIn)
+        val card = teaching.explain(text, cloudOptIn = false)
         _uiState.update { it.copy(teachingCard = card, lastVoiceCommand = VoiceCommand.TeachMeThis.label) }
     }
 
     fun hideHelp() {
         _uiState.update { it.copy(teachingCard = null, lastVoiceCommand = VoiceCommand.HideHelp.label) }
-    }
-
-    fun deleteCurrentSession() {
-        sessionLines.clear()
-        _uiState.update {
-            it.copy(
-                currentLine = null,
-                sessionLineCount = 0,
-                teachingCard = null,
-            )
-        }
-    }
-
-    fun deleteSavedTranscript() {
-        transcripts.deleteSaved()
-        _uiState.update { it.copy(savedTranscriptExists = false) }
     }
 
     fun openNameSpeakerDialog() {
@@ -293,7 +311,12 @@ class CaptionLensViewModel(
         directory.nameSpeaker(id, name)
         _uiState.update { state ->
             val line = state.currentLine?.copy(speakerLabel = directory.labelFor(id))
-            state.copy(currentLine = line, nameSpeakerDialog = false)
+            val session = state.sessionLines.map { item ->
+                if (item.speakerId == id) item.copy(speakerLabel = directory.labelFor(id)) else item
+            }
+            sessionLines.clear()
+            sessionLines += session
+            state.copy(currentLine = line, sessionLines = session, nameSpeakerDialog = false)
         }
     }
 
@@ -307,11 +330,19 @@ class CaptionLensViewModel(
 
     fun refreshDisplays() {
         val snapshot = probeDisplays(getApplication())
+        val available = OnDeviceSpeech.isAvailable(getApplication())
         _uiState.update {
             it.copy(
                 displayCount = snapshot.count,
                 displaySummary = snapshot.summary,
-                onDeviceSpeechAvailable = OnDeviceSpeech.isAvailable(getApplication()),
+                onDeviceSpeechAvailable = available,
+                engineStatus = if (it.listening == ListeningState.Listening && it.recordsAudio) {
+                    "Engine: on-device SpeechRecognizer (local-first)"
+                } else if (it.captionMode.recordsAudio) {
+                    engineStatusLabel(available)
+                } else {
+                    "Engine: offline demo — microphone off"
+                },
             )
         }
     }
@@ -335,7 +366,6 @@ class CaptionLensViewModel(
         }
         _uiState.update {
             it.copy(
-                recordsAudio = captionSource.recordsAudio && it.listening == ListeningState.Listening,
                 sourceName = it.captionMode.label,
                 speakerNote = speakerNote(it.diarizationEnabled, it.captionMode),
             )
@@ -352,21 +382,17 @@ class CaptionLensViewModel(
             return
         }
         val labeled = label(raw)
-        if (!labeled.isPartial) {
+        if (!labeled.isPartial && _uiState.value.transcriptSessionOn) {
             sessionLines += labeled
-            if (_uiState.value.saveTranscript) {
-                transcripts.save(sessionLines.toList())
-            }
         }
         val liveGuess = labeled.speakerUncertain && _uiState.value.diarizationEnabled
         _uiState.update {
             it.copy(
                 currentLine = labeled,
-                sessionLineCount = sessionLines.size,
+                sessionLines = sessionLines.toList(),
                 speakerUncertain = liveGuess,
                 speakerNote = speakerNote(it.diarizationEnabled, it.captionMode),
                 recordsAudio = captionSource.recordsAudio && it.listening == ListeningState.Listening,
-                savedTranscriptExists = transcripts.hasSavedTranscript(),
             )
         }
     }
@@ -400,17 +426,16 @@ class CaptionLensViewModel(
         if (!enabled) return "Speaker labels off"
         return when (mode) {
             CaptionMode.TestScripted -> "Test labels: Speaker 1–3. Not real identities."
-            CaptionMode.TestSample -> "Test label: Speaker 1. Not a real identity."
-            CaptionMode.LiveOnDevice, CaptionMode.LiveCloud ->
-                "Speaker guess uncertain. Pause-based only. Not face recognition."
+            CaptionMode.TestSample -> "Demo label: Speaker 1. Not a real identity."
+            CaptionMode.LiveOnDevice ->
+                "Speaker uncertain. Pause-based guess only. Not face recognition."
         }
     }
 
     private fun createSource(mode: CaptionMode): CaptionSource = when (mode) {
-        CaptionMode.TestScripted -> ScriptedConversationSource()
         CaptionMode.TestSample -> SampleCaptionSource()
-        CaptionMode.LiveOnDevice -> SpeechCaptionSource(getApplication(), onDevice = true)
-        CaptionMode.LiveCloud -> SpeechCaptionSource(getApplication(), onDevice = false)
+        CaptionMode.TestScripted -> ScriptedConversationSource()
+        CaptionMode.LiveOnDevice -> SpeechCaptionSource(getApplication())
     }
 
     private fun hasMicPermission(): Boolean {
@@ -422,9 +447,14 @@ class CaptionLensViewModel(
 
     private companion object {
         const val PREFS = "chipos_caption_prefs"
-        const val KEY_CLOUD_SPEECH = "cloud_speech_opt_in"
-        const val KEY_CLOUD_AI = "cloud_ai_opt_in"
         const val KEY_DIARIZATION = "diarization"
-        const val KEY_SAVE_TRANSCRIPT = "save_transcript"
+
+        fun engineStatusLabel(available: Boolean): String {
+            return if (available) {
+                "Engine: on-device SpeechRecognizer ready (not started)"
+            } else {
+                "Engine: UNAVAILABLE — no local speech on this phone. Cloud is not used."
+            }
+        }
     }
 }

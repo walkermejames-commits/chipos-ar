@@ -16,15 +16,14 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 
 /**
- * Live captions through Android's speech recognizer.
+ * Live captions using Android's **on-device** speech recognizer only.
  *
- * [onDevice] true uses [SpeechRecognizer.createOnDeviceSpeechRecognizer].
- * [onDevice] false uses the default recognizer and may send audio to Google.
- * Callers must only use the cloud path after an explicit opt-in.
+ * This class never constructs [SpeechRecognizer.createSpeechRecognizer], which
+ * may send audio to Google. If on-device recognition is missing, [start]
+ * fails with [LocalSpeechUnavailableException] and the microphone is not used.
  */
 class SpeechCaptionSource(
     context: Context,
-    private val onDevice: Boolean,
 ) : CaptionSource, SpeechToTextModule {
 
     private val appContext = context.applicationContext
@@ -35,14 +34,17 @@ class SpeechCaptionSource(
     private var running = false
     private var recognizer: SpeechRecognizer? = null
 
-    override val id: String = if (onDevice) "speech-on-device" else "speech-cloud"
-    override val displayName: String = if (onDevice) "On-device speech" else "Cloud speech"
+    override val id: String = "speech-on-device"
+    override val displayName: String = "On-device speech"
     override val recordsAudio: Boolean = true
 
     override fun captions(): Flow<CaptionLine> = lines.asSharedFlow()
 
     override suspend fun start() {
         withContext(Dispatchers.Main) {
+            if (!OnDeviceSpeech.isAvailable(appContext)) {
+                throw LocalSpeechUnavailableException()
+            }
             running = true
             ensureRecognizer()
             startListening()
@@ -59,10 +61,10 @@ class SpeechCaptionSource(
 
     private fun ensureRecognizer() {
         if (recognizer != null) return
-        recognizer = if (onDevice) {
+        recognizer = try {
             SpeechRecognizer.createOnDeviceSpeechRecognizer(appContext)
-        } else {
-            SpeechRecognizer.createSpeechRecognizer(appContext)
+        } catch (error: Exception) {
+            throw LocalSpeechUnavailableException(error)
         }
         recognizer?.setRecognitionListener(listener)
     }
@@ -74,13 +76,14 @@ class SpeechCaptionSource(
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, appContext.packageName)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, onDevice)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
         try {
             recognizer?.startListening(intent)
         } catch (error: Exception) {
-            emitStatus("Speech recognizer failed to start: ${error.message ?: error.javaClass.simpleName}")
-            scheduleRestart(800L)
+            emitStatus("On-device recognizer failed to start: ${error.message ?: error.javaClass.simpleName}")
+            running = false
+            destroyRecognizer()
         }
     }
 
@@ -89,7 +92,7 @@ class SpeechCaptionSource(
             recognizer?.cancel()
             recognizer?.destroy()
         } catch (_: Exception) {
-            // Recognizer may already be torn down.
+            // Already torn down.
         }
         recognizer = null
     }
@@ -105,7 +108,8 @@ class SpeechCaptionSource(
             ensureRecognizer()
             startListening()
         } catch (error: Exception) {
-            emitStatus("Could not restart listening: ${error.message ?: error.javaClass.simpleName}")
+            emitStatus("On-device speech unavailable: ${error.message ?: error.javaClass.simpleName}")
+            running = false
         }
     }
 
@@ -122,22 +126,19 @@ class SpeechCaptionSource(
                     emitStatus("Microphone permission is missing.")
                     running = false
                 }
+                SpeechRecognizer.ERROR_NETWORK,
+                SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
+                -> {
+                    emitStatus("On-device speech reported a network error. Cloud speech is not enabled. Stopping.")
+                    running = false
+                    destroyRecognizer()
+                }
                 SpeechRecognizer.ERROR_CLIENT,
                 SpeechRecognizer.ERROR_RECOGNIZER_BUSY,
                 SpeechRecognizer.ERROR_NO_MATCH,
                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT,
                 SpeechRecognizer.ERROR_AUDIO,
                 -> scheduleRestart(250L)
-                SpeechRecognizer.ERROR_NETWORK,
-                SpeechRecognizer.ERROR_NETWORK_TIMEOUT,
-                -> {
-                    if (onDevice) {
-                        scheduleRestart(400L)
-                    } else {
-                        emitStatus("Cloud speech lost the network.")
-                        scheduleRestart(1200L)
-                    }
-                }
                 else -> scheduleRestart(500L)
             }
         }
@@ -180,3 +181,10 @@ class SpeechCaptionSource(
         )
     }
 }
+
+class LocalSpeechUnavailableException(
+    cause: Throwable? = null,
+) : IllegalStateException(
+    "On-device speech is not available on this phone. Cloud speech is not used.",
+    cause,
+)

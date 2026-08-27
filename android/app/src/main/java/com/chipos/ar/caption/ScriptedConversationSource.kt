@@ -1,5 +1,6 @@
 package com.chipos.ar.caption
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ class ScriptedConversationSource : CaptionSource {
 
     private val running = MutableStateFlow(false)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun captions(): Flow<CaptionLine> = running.flatMapLatest { isRunning ->
         if (!isRunning) {
             emptyFlow()

@@ -3,14 +3,13 @@ package com.chipos.ar.caption
 /**
  * How Caption Lens produces text.
  *
- * Test modes never open the microphone. Live on-device is the default real
- * speech path. Cloud speech is off until the wearer opts in.
+ * Demo modes never open the microphone. Live on-device speech is the only
+ * real-audio path. There is no cloud speech mode and no silent fallback.
  */
 enum class CaptionMode(val label: String, val recordsAudio: Boolean) {
-    TestScripted("Test — several speakers", recordsAudio = false),
-    TestSample("Test — Phase 1 sample", recordsAudio = false),
+    TestSample("Demo — sample captions", recordsAudio = false),
+    TestScripted("Demo — several speakers", recordsAudio = false),
     LiveOnDevice("Live — on-device speech", recordsAudio = true),
-    LiveCloud("Live — cloud speech (opt-in)", recordsAudio = true),
     ;
 
     fun next(): CaptionMode {
