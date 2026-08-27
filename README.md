@@ -102,6 +102,20 @@ Do not upgrade the test phone to **Android 16**; XREAL currently warns that comp
 
 Then follow `docs/PHASE_1_TEST_PLAN.md`.
 
+## Phase 2 Caption Lens
+
+The current APK (`0.2.0-caption-lens`) keeps the Phase 1 **sample-caption** path as the default offline demo and adds:
+
+- **Demo — sample captions** (default): original Phase 1 source, microphone off.
+- **Demo — several speakers**: scripted Speaker 1–3 conversation, microphone off.
+- **Live — on-device speech**: Android `createOnDeviceSpeechRecognizer` after you tap Start Listening and allow the mic. If that engine is missing, the app **refuses to listen** and does **not** fall back to cloud speech.
+- Optional pause-based speaker labels (**Speaker 1, 2, …**) with **Speaker uncertain** in live mode. You may type a name; the app will not invent one.
+- Optional local transcript session, off by default: start/stop, show session, delete session, delete saved file. No cloud sync.
+- **Teach me this**: one local mock card with uncertainty wording.
+- Voice-command parser plus **Test voice** for start/stop captions, make it bigger, move subtitles down, teach me this, hide help.
+
+Follow `docs/PHASE_2_TEST_PLAN.md` after the panel is readable in the glasses.
+
 ## Docs
 
 Existing product writing is unchanged:
@@ -109,16 +123,21 @@ Existing product writing is unchanged:
 - `docs/PRODUCT_BRIEF.md`
 - `docs/DECISIONS.md`
 
-Added for this iteration:
+Hardware and tests:
 
-- `docs/HARDWARE_CAPABILITIES.md` — confirmed facts, unknowns, phone-required functions, external-sensor research
-- `docs/PHASE_1_TEST_PLAN.md` — first glasses-on test
+- `docs/HARDWARE_CAPABILITIES.md`
+- `docs/PHASE_1_TEST_PLAN.md`
+- `docs/PHASE_2_TEST_PLAN.md`
+- `docs/CAPTION_PRIVACY.md`
+- `docs/AI_TEACHING_DESIGN.md`
 
 ## Privacy in this build
 
-- No `RECORD_AUDIO` permission.
 - No `INTERNET` permission.
 - No hidden recording. Listening state is on screen at all times.
-- Sample caption source never opens a microphone.
-
-Real speech-to-text is a later module. Android’s default `SpeechRecognizer` may send audio to Google on many phones, so it is not wired.
+- Default mode does not open the microphone.
+- `RECORD_AUDIO` is requested only for live modes, and only when you tap Start Listening.
+- Transcripts are off until **Start session**. Files stay in app-private storage.
+- There is no cloud speech path and no silent fallback.
+- Teach me this is a local mock.
+- No face recognition. No stranger identification.

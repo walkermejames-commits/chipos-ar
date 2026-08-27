@@ -11,7 +11,7 @@ interface SpeechToTextModule
 /** Speaker labels stay "Speaker 1", "Speaker 2" until the wearer names them. */
 interface SpeakerDiarizationModule
 
-/** On-demand teaching overlay. Must state uncertainty. Not wired. */
+/** On-demand teaching overlay. Must state uncertainty. Phase 2 uses a local mock. */
 interface TeachingOverlayModule
 
 /** Detected-sound cues. Direction only when a sensor path is verified. */
