@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ChipOS AR — Caption Lens</string>
+    <string name="panel_title">ChipOS AR — Caption Lens</string>
+    <string name="listening_idle">Not listening</string>
+    <string name="listening_on">Listening (sample)</string>
+    <string name="listening_stopped">Stopped</string>
+    <string name="privacy_idle">Microphone is off. Sample captions only. Nothing is recorded.</string>
+    <string name="privacy_listening">Listening state is on. Microphone is still off. Sample text only. No audio is captured or sent anywhere.</string>
+    <string name="privacy_stopped">Listening stopped. Microphone is off. Last sample line is kept on screen only.</string>
+    <string name="start_listening">Start Listening</string>
+    <string name="stop_listening">Stop Listening</string>
+    <string name="text_smaller">Text −</string>
+    <string name="text_larger">Text +</string>
+    <string name="contrast">Contrast</string>
+    <string name="panel_position">Panel position</string>
+    <string name="caption_placeholder">Captions will appear here.</string>
+    <string name="source_sample">Caption source: SAMPLE</string>
+    <string name="mic_off">Mic: off</string>
+</resources>

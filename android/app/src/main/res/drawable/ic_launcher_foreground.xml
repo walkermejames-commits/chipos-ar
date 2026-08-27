@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Caption bar mark: low in the icon, matching the on-glass panel. -->
+    <path
+        android:fillColor="#F4E27A"
+        android:pathData="M28,70h52v10h-52z" />
+    <path
+        android:fillColor="#F4E27A"
+        android:pathData="M36,84h36v6h-36z" />
+</vector>

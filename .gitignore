@@ -7,3 +7,26 @@ build/
 *.keystore
 *.jks
 secrets.properties
+
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/app/release/
+android/captures/
+android/local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+.cxx/
+.externalNativeBuild/
+
+# Studio / OS
+*.hprof
+*.log
+.navigation/
+captures/
+*.swp
+Thumbs.db
+.kotlin/

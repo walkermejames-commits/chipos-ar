@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Phase 1 does not capture audio. RECORD_AUDIO is intentionally absent.
+      Add it only when an on-device caption source is wired and the wearer
+      has tapped Start Listening.
+    -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+    <application
+        android:name=".ChipOsApplication"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ChipOsAr">
+        <!--
+          Device-support hint from the official XREAL FAQ for apps that fail
+          to open from ControlGlasses / MyGlasses. This does not make a native
+          Compose app a Unity XREAL SDK 6DoF experience. See docs/HARDWARE_CAPABILITIES.md.
+        -->
+        <meta-data
+            android:name="com.nreal.supportDevices"
+            android:value="1|XrealLight|2|XrealAir" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:keepScreenOn="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.ChipOsAr"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
