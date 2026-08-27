@@ -42,6 +42,7 @@ data class CaptionUiState(
     val speechError: String? = null,
     val moreOpen: Boolean = false,
     val nameSpeakerDialog: Boolean = false,
+    val enginePickerOpen: Boolean = false,
     val voiceCommandIndex: Int = 0,
 ) {
     val nextVoiceCommand: VoiceCommand

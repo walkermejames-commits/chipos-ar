@@ -137,7 +137,7 @@ fun CaptionLensScreen(
             onLarger = viewModel::largerText,
             onContrast = viewModel::cycleContrast,
             onPosition = viewModel::cyclePosition,
-            onMode = viewModel::cycleMode,
+            onMode = viewModel::openEnginePicker,
             onTeach = viewModel::teachMeThis,
             onHideHelp = viewModel::hideHelp,
             onMore = viewModel::toggleMore,
@@ -162,6 +162,15 @@ fun CaptionLensScreen(
             onDismiss = viewModel::dismissNameSpeakerDialog,
             onConfirm = viewModel::nameCurrentSpeaker,
             palette = palette,
+        )
+    }
+
+    if (state.enginePickerOpen) {
+        EngineSelectionDialog(
+            state = state,
+            palette = palette,
+            onSelect = viewModel::chooseEngine,
+            onDismiss = viewModel::dismissEnginePicker,
         )
     }
 }
@@ -435,7 +444,7 @@ private fun ControlDock(
             ) {
                 DockButton("Start Listening", onStart, palette, emphasized = !listening, enabled = !listening)
                 DockButton("Stop Listening", onStop, palette, emphasized = listening, enabled = listening)
-                DockButton("Mode: ${state.captionMode.label}", onMode, palette)
+                DockButton("Choose engine: ${state.captionMode.label}", onMode, palette)
                 DockButton("Text −", onSmaller, palette)
                 DockButton("Text +", onLarger, palette)
                 DockButton("Contrast: ${state.contrast.label}", onContrast, palette)
@@ -489,6 +498,105 @@ private fun ControlDock(
                     DockButton("Test voice: ${state.nextVoiceCommand.label}", onTestVoice, palette)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EngineSelectionDialog(
+    state: CaptionUiState,
+    palette: CaptionPalette,
+    onSelect: (CaptionMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val liveReady = state.onDeviceSpeechAvailable
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Caption engine") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
+                Text("Demo modes never open the microphone. Live speech uses on-device recognition only. Google/cloud speech is not an option.")
+                EngineChoiceRow(
+                    title = CaptionMode.TestSample.label,
+                    detail = "Fallback demo. Always available. Sample text only. No microphone.",
+                    selected = state.captionMode == CaptionMode.TestSample,
+                    available = true,
+                    palette = palette,
+                    onClick = { onSelect(CaptionMode.TestSample) },
+                )
+                EngineChoiceRow(
+                    title = CaptionMode.TestScripted.label,
+                    detail = "Scripted Speaker 1–3 conversation. Always available. No microphone.",
+                    selected = state.captionMode == CaptionMode.TestScripted,
+                    available = true,
+                    palette = palette,
+                    onClick = { onSelect(CaptionMode.TestScripted) },
+                )
+                EngineChoiceRow(
+                    title = CaptionMode.LiveOnDevice.label,
+                    detail = if (liveReady) {
+                        "Ready on this phone. Microphone is requested only after Start Listening. Audio stays on-device. Not Google cloud."
+                    } else {
+                        "Not yet available on this phone. No local speech engine. Cloud speech will not be used."
+                    },
+                    selected = state.captionMode == CaptionMode.LiveOnDevice,
+                    available = liveReady,
+                    palette = palette,
+                    onClick = { onSelect(CaptionMode.LiveOnDevice) },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        containerColor = palette.card,
+        titleContentColor = palette.fg,
+        textContentColor = palette.fg,
+    )
+}
+
+@Composable
+private fun EngineChoiceRow(
+    title: String,
+    detail: String,
+    selected: Boolean,
+    available: Boolean,
+    palette: CaptionPalette,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) palette.button else palette.card)
+            .border(2.dp, if (selected) palette.accent else palette.border, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title + if (selected) "  (selected)" else "",
+            color = palette.fg,
+            fontWeight = FontWeight.Bold,
+            fontSize = 15.sp,
+        )
+        Text(
+            text = if (available) "Available" else "NOT YET AVAILABLE",
+            color = if (available) palette.fg else Color(0xFFFFB74D),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+        )
+        Text(text = detail, color = palette.fg, fontSize = 13.sp)
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = palette.accent,
+                contentColor = palette.accentFg,
+            ),
+        ) {
+            Text(if (selected) "Keep this engine" else "Use this engine")
         }
     }
 }

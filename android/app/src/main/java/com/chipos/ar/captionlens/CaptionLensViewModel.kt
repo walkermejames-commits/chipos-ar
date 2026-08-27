@@ -174,25 +174,34 @@ class CaptionLensViewModel(
         if (granted) startListening()
     }
 
-    fun cycleMode() {
-        setMode(_uiState.value.captionMode.next())
+    fun openEnginePicker() {
+        _uiState.update { it.copy(enginePickerOpen = true) }
+    }
+
+    fun dismissEnginePicker() {
+        _uiState.update { it.copy(enginePickerOpen = false) }
+    }
+
+    fun chooseEngine(mode: CaptionMode) {
+        setMode(mode)
+        _uiState.update { it.copy(enginePickerOpen = false) }
     }
 
     fun setMode(mode: CaptionMode) {
         viewModelScope.launch {
-            val wasListening = _uiState.value.listening == ListeningState.Listening
             captionSource.stop()
             captionSource = createSource(mode)
             bindSource()
             val available = OnDeviceSpeech.isAvailable(getApplication())
+            val liveUnavailable = mode == CaptionMode.LiveOnDevice && !available
             _uiState.update {
                 it.copy(
                     captionMode = mode,
                     sourceName = mode.label,
                     recordsAudio = false,
-                    listening = if (wasListening) ListeningState.Stopped else it.listening,
-                    speechError = if (mode == CaptionMode.LiveOnDevice && !available) {
-                        "On-device speech engine is unavailable on this phone. Cloud speech is not used."
+                    listening = ListeningState.Idle,
+                    speechError = if (liveUnavailable) {
+                        "Not yet available: this phone has no on-device speech engine. Cloud speech is not used. Use Demo — sample captions."
                     } else {
                         null
                     },
@@ -202,10 +211,8 @@ class CaptionLensViewModel(
                     } else {
                         "Engine: offline demo — microphone off"
                     },
+                    enginePickerOpen = false,
                 )
-            }
-            if (wasListening && (mode.recordsAudio.not() || available)) {
-                startListening()
             }
         }
     }
