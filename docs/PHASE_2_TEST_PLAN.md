@@ -17,7 +17,7 @@ Default mode is **Demo — sample captions** (the Phase 1 sample path).
 
 1. Open the app. Confirm **NOT LISTENING**, **Mic: off**, and no microphone permission dialog.
 2. Tap **Start Listening**. Chip: **LISTENING — DEMO (MIC OFF)**. Sample lines change. Mic stays off.
-3. Tap **Mode** to **Demo — several speakers**. Start Listening again. Read **Speaker 1 / 2 / 3**. Labels must not be personal names.
+3. Tap **Choose engine**. Confirm three engines: sample demo, several speakers, and live on-device (Ready or **NOT YET AVAILABLE**). There must be no Google/cloud option. Select **Demo — several speakers**. Start Listening again. Read **Speaker 1 / 2 / 3**. Labels must not be personal names.
 4. Tap **Teach me this**. One help card appears above the captions and says it is a local mock.
 5. Tap **Test voice** until **Hide help**. The card goes away.
 6. **More → Start session**, **Show session**. Confirm lines appear in the session list. **Stop session**, then **Delete session** and **Delete saved transcript**.
@@ -29,8 +29,8 @@ Default mode is **Demo — sample captions** (the Phase 1 sample path).
 
 Only if the banner says the on-device engine is ready. If it says **UNAVAILABLE**, skip this section. Do **not** look for a cloud-speech mode — there isn’t one.
 
-1. Mode **Live — on-device speech**.
-2. Tap **Start Listening**. The microphone permission must appear **now**, not earlier.
+1. **Choose engine → Live — on-device speech**. If the row says **NOT YET AVAILABLE**, tap Start Listening anyway: you must **not** get a microphone prompt, and the banner must say the engine is unavailable. Then go back to sample demo.
+2. If it says **Available**, tap **Start Listening**. The microphone permission must appear **now**, not earlier.
 3. Allow it. Chip: **LISTENING — ON-DEVICE**, **Mic: on**.
 4. Speak a short sentence. A caption should appear (partials allowed).
 5. Speakers stay **Speaker 1 / 2**. The **Speaker uncertain** note must be visible. The app must not invent a name.

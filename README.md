@@ -108,7 +108,7 @@ The current APK (`0.2.0-caption-lens`) keeps the Phase 1 **sample-caption** path
 
 - **Demo — sample captions** (default): original Phase 1 source, microphone off.
 - **Demo — several speakers**: scripted Speaker 1–3 conversation, microphone off.
-- **Live — on-device speech**: Android `createOnDeviceSpeechRecognizer` after you tap Start Listening and allow the mic. If that engine is missing, the app **refuses to listen** and does **not** fall back to cloud speech.
+- **Live — on-device speech**: pick it on the **Choose engine** screen. Android `createOnDeviceSpeechRecognizer` after you tap Start Listening and allow the mic. If that engine is missing, the screen says **NOT YET AVAILABLE**, Start Listening refuses, and the app does **not** fall back to cloud speech.
 - Optional pause-based speaker labels (**Speaker 1, 2, …**) with **Speaker uncertain** in live mode. You may type a name; the app will not invent one.
 - Optional local transcript session, off by default: start/stop, show session, delete session, delete saved file. No cloud sync.
 - **Teach me this**: one local mock card with uncertainty wording.
