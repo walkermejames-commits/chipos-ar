@@ -2,6 +2,7 @@ package com.chipos.ar.captionlens
 
 import com.chipos.ar.caption.CaptionLine
 import com.chipos.ar.caption.CaptionMode
+import com.chipos.ar.caption.AudioInputOption
 import com.chipos.ar.overlay.ContrastMode
 import com.chipos.ar.overlay.PanelPosition
 import com.chipos.ar.overlay.TextScale
@@ -20,9 +21,9 @@ data class CaptionUiState(
     val textScale: TextScale = TextScale.Large,
     val contrast: ContrastMode = ContrastMode.High,
     val panelPosition: PanelPosition = PanelPosition.BottomCenter,
-    val captionMode: CaptionMode = CaptionMode.TestSample,
+    val captionMode: CaptionMode = CaptionMode.LiveSherpa,
     val recordsAudio: Boolean = false,
-    val sourceName: String = CaptionMode.TestSample.label,
+    val sourceName: String = CaptionMode.LiveSherpa.label,
     val displayCount: Int = 1,
     val displaySummary: String = "not probed",
     val onDeviceSpeechAvailable: Boolean = false,
@@ -32,6 +33,7 @@ data class CaptionUiState(
     val speakerNote: String? = null,
     val transcriptSessionOn: Boolean = false,
     val sessionLines: List<CaptionLine> = emptyList(),
+    val recentCaptions: List<CaptionLine> = emptyList(),
     val savedTranscriptExists: Boolean = false,
     val savedTranscriptPreview: String = "",
     val showSession: Boolean = false,
@@ -39,6 +41,12 @@ data class CaptionUiState(
     val lastVoiceCommand: String? = null,
     val needsMicPermission: Boolean = false,
     val micPermissionDenied: Boolean = false,
+    val micGain: Float = 2.0f,
+    val audioInputName: String? = null,
+    val audioInputs: List<AudioInputOption> = emptyList(),
+    val selectedAudioInputId: Int? = null,
+    val micLevel: Float = 0f,
+    val inputPickerOpen: Boolean = false,
     val speechError: String? = null,
     val moreOpen: Boolean = false,
     val nameSpeakerDialog: Boolean = false,

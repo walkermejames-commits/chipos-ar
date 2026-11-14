@@ -7,6 +7,10 @@
       Test modes never use it. There is no INTERNET permission.
     -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <intent>
@@ -32,6 +36,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ChipOsAr">
+        <service android:name=".overlay.SpeechOverlayService" android:exported="false"
+            android:foregroundServiceType="microphone" />
         <!--
           Device-support hint from the official XREAL FAQ for apps that fail
           to open from ControlGlasses / MyGlasses. This does not make a native

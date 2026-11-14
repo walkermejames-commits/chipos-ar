@@ -16,4 +16,5 @@ data class CaptionLine(
     val speakerConfidence: Float? = null,
     val speakerUncertain: Boolean = false,
     val atMillis: Long = System.currentTimeMillis(),
+    val audioLevel: Float? = null,
 )

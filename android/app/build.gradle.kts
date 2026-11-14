@@ -12,8 +12,8 @@ android {
         applicationId = "com.chipos.ar"
         minSdk = 31
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-caption-lens"
+        versionCode = 10
+        versionName = "0.3.1-glasses-remote"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -23,6 +23,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            ndk {
+                abiFilters += "arm64-v8a"
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -31,6 +34,11 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // Include x86_64 only in debug builds so the bundled sherpa runtime can
+            // run in the Android Emulator. Release APKs remain arm64-only.
+            ndk {
+                abiFilters += setOf("arm64-v8a", "x86_64")
+            }
         }
     }
 
@@ -53,6 +61,10 @@ android {
 }
 
 dependencies {
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)

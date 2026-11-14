@@ -1,6 +1,6 @@
 # Android app — Caption Lens
 
-Gradle project for ChipOS AR Caption Lens (Phase 2: `0.2.0-caption-lens`).
+Gradle project for ChipOS Studio `0.3.1-glasses-remote`. See `../docs/RELEASE_0.3.1.md`. The archived Unity Mark II keyboard prototype used mock captions; it is not this app or live speech recognition.
 
 Open this `android/` folder in Android Studio, or build from a Windows command prompt:
 

@@ -28,6 +28,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,9 +58,9 @@ import com.chipos.ar.overlay.PanelPosition
 import com.chipos.ar.teach.TeachingCard
 
 private val ChipOsDark = darkColorScheme(
-    background = Color(0xFF05070A),
-    surface = Color(0xFF10141C),
-    primary = Color(0xFFF4E27A),
+    background = Color(0xFF061C20),
+    surface = Color(0xFF143739),
+    primary = Color(0xFF9BD9C6),
     onPrimary = Color(0xFF141414),
     onBackground = Color(0xFFF5F5F0),
     onSurface = Color(0xFFF5F5F0),
@@ -81,12 +83,14 @@ fun CaptionLensScreen(
 
     LaunchedEffect(state.listening) {
         viewModel.refreshDisplays()
+        viewModel.refreshAudioInputs()
     }
     LaunchedEffect(state.needsMicPermission) {
         if (state.needsMicPermission) {
             micLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
+    val immersiveLive = state.listening == ListeningState.Listening && state.captionMode.recordsAudio
 
     Box(
         modifier = Modifier
@@ -97,63 +101,83 @@ fun CaptionLensScreen(
         ListeningBanner(
             state = state,
             palette = palette,
+            compact = immersiveLive,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(12.dp)
-                .widthIn(max = 560.dp),
+                .widthIn(max = if (immersiveLive) 300.dp else 560.dp),
         )
 
-        Column(
-            modifier = Modifier
-                .align(alignmentFor(state.panelPosition))
-                .padding(horizontal = 16.dp, vertical = bottomPaddingFor(state.panelPosition))
-                .fillMaxWidth(widthFor(state.panelPosition))
-                .widthIn(max = 900.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            state.teachingCard?.let { card ->
-                TeachingCardView(
-                    card = card,
-                    palette = palette,
-                    scale = state.textScale.multiplier,
-                    onHide = viewModel::hideHelp,
-                )
-            }
-            CaptionCard(
+        if (immersiveLive) {
+            BottomSubtitleBand(
                 state = state,
                 palette = palette,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
             )
-            if (state.showSession) {
-                SessionPanel(state = state, palette = palette)
+            TextButton(
+                onClick = viewModel::stopListening,
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+            ) {
+                Text("Stop captions", color = palette.fg, fontWeight = FontWeight.Bold)
             }
-        }
+        } else {
+            Column(
+                modifier = Modifier
+                    .align(alignmentFor(state.panelPosition))
+                    .padding(horizontal = 16.dp, vertical = bottomPaddingFor(state.panelPosition))
+                    .fillMaxWidth(widthFor(state.panelPosition))
+                    .widthIn(max = 900.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                state.teachingCard?.let { card ->
+                    TeachingCardView(
+                        card = card,
+                        palette = palette,
+                        scale = state.textScale.multiplier,
+                        onHide = viewModel::hideHelp,
+                    )
+                }
+                CaptionCard(
+                    state = state,
+                    palette = palette,
+                )
+                if (state.showSession) {
+                    SessionPanel(state = state, palette = palette)
+                }
+            }
 
-        ControlDock(
-            state = state,
-            palette = palette,
-            onStart = viewModel::startListening,
-            onStop = viewModel::stopListening,
-            onSmaller = viewModel::smallerText,
-            onLarger = viewModel::largerText,
-            onContrast = viewModel::cycleContrast,
-            onPosition = viewModel::cyclePosition,
-            onMode = viewModel::openEnginePicker,
-            onTeach = viewModel::teachMeThis,
-            onHideHelp = viewModel::hideHelp,
-            onMore = viewModel::toggleMore,
-            onDiarization = viewModel::toggleDiarization,
-            onStartSession = viewModel::startTranscriptSession,
-            onStopSession = viewModel::stopTranscriptSession,
-            onShowSession = viewModel::toggleShowSession,
-            onDeleteSession = viewModel::deleteCurrentSession,
-            onDeleteSaved = viewModel::deleteSavedTranscript,
-            onNameSpeaker = viewModel::openNameSpeakerDialog,
-            onTestVoice = viewModel::simulateNextVoiceCommand,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .navigationBarsPadding(),
-        )
+            ControlDock(
+                state = state,
+                palette = palette,
+                onStart = viewModel::startListening,
+                onStop = viewModel::stopListening,
+                onSmaller = viewModel::smallerText,
+                onLarger = viewModel::largerText,
+                onContrast = viewModel::cycleContrast,
+                onPosition = viewModel::cyclePosition,
+                onMode = viewModel::openEnginePicker,
+                onTeach = viewModel::teachMeThis,
+                onHideHelp = viewModel::hideHelp,
+                onMore = viewModel::toggleMore,
+                onDiarization = viewModel::toggleDiarization,
+                onMicGain = viewModel::cycleMicGain,
+                onInputPicker = viewModel::openInputPicker,
+                onStartSession = viewModel::startTranscriptSession,
+                onStopSession = viewModel::stopTranscriptSession,
+                onShowSession = viewModel::toggleShowSession,
+                onDeleteSession = viewModel::deleteCurrentSession,
+                onDeleteSaved = viewModel::deleteSavedTranscript,
+                onNameSpeaker = viewModel::openNameSpeakerDialog,
+                onTestVoice = viewModel::simulateNextVoiceCommand,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding(),
+            )
+        }
     }
 
     if (state.nameSpeakerDialog) {
@@ -173,18 +197,28 @@ fun CaptionLensScreen(
             onDismiss = viewModel::dismissEnginePicker,
         )
     }
+    if (state.inputPickerOpen) {
+        AudioInputSelectionDialog(
+            state = state,
+            palette = palette,
+            onSelect = viewModel::selectAudioInput,
+            onDismiss = viewModel::dismissInputPicker,
+        )
+    }
 }
 
 @Composable
 private fun ListeningBanner(
     state: CaptionUiState,
     palette: CaptionPalette,
+    compact: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val listening = state.listening == ListeningState.Listening
     val indicatorColor by animateColorAsState(
         targetValue = when {
             listening && state.captionMode == CaptionMode.LiveOnDevice -> Color(0xFF3DDB84)
+            listening && state.captionMode == CaptionMode.LiveSherpa -> Color(0xFF3DDB84)
             listening -> Color(0xFF3DDB84)
             state.listening == ListeningState.Stopped -> Color(0xFFE0A325)
             else -> Color(0xFF8A8F99)
@@ -192,22 +226,24 @@ private fun ListeningBanner(
         label = "listening-indicator",
     )
     val statusText = when {
+        compact -> "LIVE · MIC ON"
         !listening && state.listening == ListeningState.Idle -> "NOT LISTENING"
         !listening -> "STOPPED"
         state.captionMode == CaptionMode.LiveOnDevice -> "LISTENING — ON-DEVICE"
-        else -> "LISTENING — DEMO (MIC OFF)"
+        state.captionMode == CaptionMode.LiveSherpa -> "LISTENING — LOCAL ASR + SPEAKERS"
+        else -> "LISTENING"
     }
     val privacy = when {
         !listening -> "Microphone is off."
         state.captionMode.recordsAudio ->
             "Microphone is on. On-device speech only. Audio is not uploaded. Cloud speech is not used."
-        else -> "Microphone is off. Sample or scripted captions. Nothing is recorded."
+        else -> "Microphone is off. Nothing is recorded."
     }
 
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(palette.card.copy(alpha = 0.92f))
+            .background(palette.card.copy(alpha = if (compact) 0.56f else 0.92f))
             .border(2.dp, indicatorColor, RoundedCornerShape(14.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp)
             .semantics {
@@ -232,21 +268,39 @@ private fun ListeningBanner(
                 fontSize = 16.sp,
             )
         }
-        Text(text = privacy, color = palette.fg, fontSize = 13.sp)
-        Text(
-            text = "${state.sourceName}  ·  Mic: ${if (state.recordsAudio && listening) "on" else "off"}  ·  Displays: ${state.displayCount}",
-            color = palette.fg.copy(alpha = 0.8f),
-            fontSize = 12.sp,
-        )
-        Text(
-            text = state.displaySummary,
-            color = palette.fg.copy(alpha = 0.7f),
-            fontSize = 11.sp,
-        )
+        if (compact) {
+            Text("On-device only", color = palette.fg.copy(alpha = 0.8f), fontSize = 11.sp)
+            Text(
+                text = "Input: ${state.audioInputName ?: "waiting for microphone"}",
+                color = palette.fg.copy(alpha = 0.76f),
+                fontSize = 10.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text("Mic signal: ${"%.3f".format(state.micLevel * 100)}% full-scale", color = palette.fg.copy(alpha = 0.82f), fontSize = 10.sp)
+            LinearProgressIndicator(
+                progress = { state.micLevel },
+                modifier = Modifier.fillMaxWidth(),
+                color = palette.accent,
+                trackColor = palette.fg.copy(alpha = 0.2f),
+            )
+        } else {
+            Text(text = privacy, color = palette.fg, fontSize = 13.sp)
+            Text(
+                text = "${state.sourceName}  ·  Mic: ${if (state.recordsAudio && listening) "on" else "off"}  ·  Displays: ${state.displayCount}",
+                color = palette.fg.copy(alpha = 0.8f),
+                fontSize = 12.sp,
+            )
+            Text(
+                text = state.displaySummary,
+                color = palette.fg.copy(alpha = 0.7f),
+                fontSize = 11.sp,
+            )
+        }
         if (state.speechError != null) {
             Text(text = state.speechError!!, color = Color(0xFFFF8A80), fontSize = 12.sp)
         }
-        if (state.lastVoiceCommand != null) {
+        if (!compact && state.lastVoiceCommand != null) {
             Text(
                 text = "Voice command: ${state.lastVoiceCommand}",
                 color = palette.fg,
@@ -254,8 +308,8 @@ private fun ListeningBanner(
                 fontWeight = FontWeight.Medium,
             )
         }
-        Text(text = state.engineStatus, color = palette.fg, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        if (!state.onDeviceSpeechAvailable) {
+        if (!compact) Text(text = state.engineStatus, color = palette.fg, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        if (!compact && state.captionMode == CaptionMode.LiveOnDevice && !state.onDeviceSpeechAvailable) {
             Text(
                 text = "Local speech engine unavailable. No cloud fallback.",
                 color = Color(0xFFFFB74D),
@@ -263,6 +317,83 @@ private fun ListeningBanner(
             )
         }
     }
+}
+
+@Composable
+private fun BottomSubtitleBand(
+    state: CaptionUiState,
+    palette: CaptionPalette,
+    modifier: Modifier = Modifier,
+) {
+    val transcriptScroll = rememberScrollState()
+    val lines = buildList {
+        addAll(state.recentCaptions.takeLast(2))
+        val partial = state.currentLine?.takeIf { it.isPartial }
+        if (partial != null && none { it.atMillis == partial.atMillis && it.text == partial.text }) {
+            add(partial)
+        }
+    }
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0x990A0D12))
+            .border(2.dp, palette.border, RoundedCornerShape(16.dp))
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = "LIVE CAPTIONS · SPEAKER COLOURS",
+            color = palette.fg.copy(alpha = 0.72f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        LaunchedEffect(lines.lastOrNull()?.text, lines.size) {
+            transcriptScroll.scrollTo(transcriptScroll.maxValue)
+        }
+        Column(
+            modifier = Modifier
+                .heightIn(max = 148.dp)
+                .verticalScroll(transcriptScroll),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (lines.isEmpty()) {
+                Text(
+                    text = "Listening for speech…",
+                    color = palette.fg,
+                    fontSize = (22 * state.textScale.multiplier).sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            } else {
+                lines.forEach { line ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+                        Text(
+                            text = line.speakerLabel ?: "Speaker ?",
+                            color = speakerColor(line.speakerId),
+                            fontSize = (15 * state.textScale.multiplier).sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = line.text,
+                            color = palette.fg,
+                            fontSize = (22 * state.textScale.multiplier).sp,
+                            lineHeight = (27 * state.textScale.multiplier).sp,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun speakerColor(speakerId: Int?): Color = when (speakerId?.let { (it - 1).mod(6) }) {
+    0 -> Color(0xFF5EDCFF)
+    1 -> Color(0xFFFFB86B)
+    2 -> Color(0xFF8FE3A2)
+    3 -> Color(0xFFFF87B2)
+    4 -> Color(0xFFB8A0FF)
+    5 -> Color(0xFFFFE16B)
+    else -> Color(0xFFCFD4DC)
 }
 
 @Composable
@@ -419,6 +550,8 @@ private fun ControlDock(
     onHideHelp: () -> Unit,
     onMore: () -> Unit,
     onDiarization: () -> Unit,
+    onMicGain: () -> Unit,
+    onInputPicker: () -> Unit,
     onStartSession: () -> Unit,
     onStopSession: () -> Unit,
     onShowSession: () -> Unit,
@@ -442,9 +575,18 @@ private fun ControlDock(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                DockButton("Start Listening", onStart, palette, emphasized = !listening, enabled = !listening)
+                DockButton(
+                    "Start live listening",
+                    onStart,
+                    palette,
+                    emphasized = !listening,
+                    enabled = !listening,
+                )
                 DockButton("Stop Listening", onStop, palette, emphasized = listening, enabled = listening)
                 DockButton("Choose engine: ${state.captionMode.label}", onMode, palette)
+                if (state.captionMode == CaptionMode.LiveSherpa) {
+                    DockButton("Choose microphone", onInputPicker, palette)
+                }
                 DockButton("Text −", onSmaller, palette)
                 DockButton("Text +", onLarger, palette)
                 DockButton("Contrast: ${state.contrast.label}", onContrast, palette)
@@ -458,6 +600,9 @@ private fun ControlDock(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    if (state.captionMode == CaptionMode.LiveSherpa) {
+                        DockButton("Mic boost: ${state.micGain}×", onMicGain, palette)
+                    }
                     DockButton(
                         if (state.diarizationEnabled) "Speakers: on" else "Speakers: off",
                         onDiarization,
@@ -493,7 +638,8 @@ private fun ControlDock(
                         "Name this speaker",
                         onNameSpeaker,
                         palette,
-                        enabled = state.currentLine?.speakerId != null,
+                        enabled = state.currentLine?.speakerId != null &&
+                            state.captionMode != CaptionMode.LiveSherpa,
                     )
                     DockButton("Test voice: ${state.nextVoiceCommand.label}", onTestVoice, palette)
                 }
@@ -518,23 +664,7 @@ private fun EngineSelectionDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState()),
             ) {
-                Text("Demo modes never open the microphone. Live speech uses on-device recognition only. Google/cloud speech is not an option.")
-                EngineChoiceRow(
-                    title = CaptionMode.TestSample.label,
-                    detail = "Fallback demo. Always available. Sample text only. No microphone.",
-                    selected = state.captionMode == CaptionMode.TestSample,
-                    available = true,
-                    palette = palette,
-                    onClick = { onSelect(CaptionMode.TestSample) },
-                )
-                EngineChoiceRow(
-                    title = CaptionMode.TestScripted.label,
-                    detail = "Scripted Speaker 1–3 conversation. Always available. No microphone.",
-                    selected = state.captionMode == CaptionMode.TestScripted,
-                    available = true,
-                    palette = palette,
-                    onClick = { onSelect(CaptionMode.TestScripted) },
-                )
+                Text("Live engines only. Speech is processed on this phone; audio is never sent to a service.")
                 EngineChoiceRow(
                     title = CaptionMode.LiveOnDevice.label,
                     detail = if (liveReady) {
@@ -547,11 +677,63 @@ private fun EngineSelectionDialog(
                     palette = palette,
                     onClick = { onSelect(CaptionMode.LiveOnDevice) },
                 )
+                EngineChoiceRow(
+                    title = CaptionMode.LiveSherpa.label,
+                    detail = "Bundled offline English speech and acoustic-speaker models. Labels are anonymous and session-only; the first label needs a 12-second audio window.",
+                    selected = state.captionMode == CaptionMode.LiveSherpa,
+                    available = true,
+                    palette = palette,
+                    onClick = { onSelect(CaptionMode.LiveSherpa) },
+                )
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Close") }
         },
+        containerColor = palette.card,
+        titleContentColor = palette.fg,
+        textContentColor = palette.fg,
+    )
+}
+
+@Composable
+private fun AudioInputSelectionDialog(
+    state: CaptionUiState,
+    palette: CaptionPalette,
+    onSelect: (Int?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Microphone input") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
+                Text("Choose an input for the offline Sherpa microphone capture. Android may use the phone mic if a connected route is unavailable.")
+                EngineChoiceRow(
+                    title = "System default microphone",
+                    detail = "Let Android choose the active microphone.",
+                    selected = state.selectedAudioInputId == null,
+                    available = true,
+                    palette = palette,
+                    onClick = { onSelect(null) },
+                )
+                state.audioInputs.forEach { input ->
+                    EngineChoiceRow(
+                        title = input.name,
+                        detail = input.kind,
+                        selected = state.selectedAudioInputId == input.id,
+                        available = true,
+                        palette = palette,
+                        onClick = { onSelect(input.id) },
+                    )
+                }
+                if (state.audioInputs.isEmpty()) Text("Android reports no microphone inputs.")
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         containerColor = palette.card,
         titleContentColor = palette.fg,
         textContentColor = palette.fg,

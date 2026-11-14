@@ -8,8 +8,8 @@ It is not a medical, legal, or surveillance product.
 
 | Setting | Default |
 | --- | --- |
-| Mode | **Demo — sample captions** (Phase 1 path, microphone off) |
-| Microphone | Off until **Start Listening** in **Live — on-device speech** |
+| Default mode | **Live — offline ASR + acoustic speakers**, with the microphone off until **Start live listening** is tapped and permission is granted. Demo modes remain available in the engine picker. |
+| Microphone | Off until **Start live listening** in a live engine |
 | Transcript session | Off |
 | Cloud speech | **Not implemented. No fallback.** |
 | Face recognition | Not present |
@@ -19,7 +19,8 @@ Listening state is always on screen.
 
 ## What this app is allowed to do
 
-- Open the phone microphone only after **Start Listening** (or the “start captions” voice command) in **Live — on-device speech**.
+- Open the phone microphone only after **Start live listening** (or the “start captions” voice command) in a live engine.
+- In the default **Live — offline ASR + acoustic speakers** mode, process audio locally with bundled sherpa-onnx models. Audio is kept in a bounded in-memory rolling buffer and is not uploaded.
 - Use Android’s on-device `SpeechRecognizer.createOnDeviceSpeechRecognizer` when the OS reports it available.
 - If that engine is missing, **refuse to start live captions**, keep the microphone off, and show **Engine: UNAVAILABLE**. It must not start the cloud recognizer.
 - Hold a local transcript session in memory after **Start session**.
@@ -42,7 +43,13 @@ There is no `INTERNET` permission.
 
 Until the wearer names a slot, the only allowed labels are **Speaker 1**, **Speaker 2**, and so on.
 
-Live diarization is pause-based turn taking. It is a guess. Live mode must show **Speaker uncertain**. Demo speakers are scripted roles, not identified people.
+The bundled Sherpa engine uses acoustic segmentation and speaker embeddings to cluster anonymous speakers. Labels are provisional, may arrive after the words, and may change or merge. Other engines may use uncertain turn-taking labels. Demo speakers are scripted roles, not identified people.
+
+## Floating captions and studio
+
+The Float action explains the overlay before requesting display-over-other-apps and microphone access. A microphone foreground service keeps listening after leaving the app only when the wearer explicitly starts this mode. Its visible overlay and persistent notification provide Stop controls. It does not restart automatically and does not save audio or transcripts. In-app listening stops when the activity leaves the foreground. Audio buffers are cleared when the speech source stops.
+
+Studio project cards are stored privately on this device and can be edited or deleted. No cloud sync, camera capture, room scanning or public project view is implemented. Avoid displaying private notes when mirroring the screen to others.
 
 ## Transcripts
 

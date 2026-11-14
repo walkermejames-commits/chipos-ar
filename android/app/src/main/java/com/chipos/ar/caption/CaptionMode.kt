@@ -3,13 +3,12 @@ package com.chipos.ar.caption
 /**
  * How Caption Lens produces text.
  *
- * Demo modes never open the microphone. Live on-device speech is the only
- * real-audio path. There is no cloud speech mode and no silent fallback.
+ * User-selectable caption sources. All selectable modes are live and use a
+ * local microphone path; there is no demo mode, cloud mode, or silent fallback.
  */
 enum class CaptionMode(val label: String, val recordsAudio: Boolean) {
-    TestSample("Demo — sample captions", recordsAudio = false),
-    TestScripted("Demo — several speakers", recordsAudio = false),
     LiveOnDevice("Live — on-device speech", recordsAudio = true),
+    LiveSherpa("Live — offline ASR + acoustic speakers", recordsAudio = true),
     ;
 
     fun next(): CaptionMode {

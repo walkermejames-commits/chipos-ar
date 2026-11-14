@@ -1,5 +1,19 @@
 # ChipOS AR
 
+## Current Android build: ChipOS Studio 0.3.1
+
+Native teal-and-brass creative studio with seven project areas, private editable project cards, offline English subtitles and acoustic speaker diarization. **Glasses remote** keeps touch controls on the phone and shows captions in a separate external presentation display when Android supports it. The remote can connect/disconnect, start/stop speech, size and position captions, hide/show them, and run a labeled display check with the microphone off. If the glasses mirror instead of extending the display, the remote explains the limitation. Open **Captions** for the complete caption settings, or **Float** for a movable overlay over other phone apps.
+
+Microphone processing stays on the device. The floating overlay does not save audio or transcripts. In-app transcript saving remains an explicit action. Project information is editable and removable. This experimental APK uses the existing Android test signing certificate.
+
+This APK provides view-fixed external captions, not room-anchored AR. It does not claim a room scan, LiDAR support or validated S26/XREAL tracking. See `docs/RELEASE_0.3.1.md` for verification and device limitations. The older Unity keyboard prototype displayed mock captions; do not use it to test the Studio or live speech. Older setup instructions below describe earlier releases.
+
+## Corrected glasses controls: ChipOS Studio 0.3.1
+
+The 0.3.1 release adds **Glasses remote**: the phone remains a touch controller and a separate external presentation display can show captions by themselves. Start and stop the microphone, resize and move captions, hide them, and test the external display without turning the mic on. This works when Android exposes the connected glasses as a separate presentation display. If the phone only mirrors, Android cannot show independent phone controls; the remote explains that limit. This is view-fixed caption output, not room-anchored AR. See `docs/RELEASE_0.3.1.md`.
+
+The older **ChipOS Mark II Unity first build** is an unconnected keyboard demo with simulated text like “Caption frame received.” It is not the Studio, speech recognition, or AR. Do not use that APK for glasses testing.
+
 An accessibility-first augmented-reality environment for **XREAL Air 2 Ultra** glasses.
 
 ## First prototype
@@ -104,12 +118,12 @@ Then follow `docs/PHASE_1_TEST_PLAN.md`.
 
 ## Phase 2 Caption Lens
 
-The current APK (`0.2.0-caption-lens`) keeps the Phase 1 **sample-caption** path as the default offline demo and adds:
+The current APK (`0.2.2-caption-lens`) starts on the bundled **offline live** caption engine, with the microphone off until the user taps **Start live listening** and grants permission. During live capture, recent captions span the bottom of the display, speaker labels use stable per-session colors, the main controls collapse to a stop button, and mic boost can be adjusted under **More**. Demo modes remain available from **Choose engine**:
 
-- **Demo — sample captions** (default): original Phase 1 source, microphone off.
+- **Demo — sample captions**: original Phase 1 source, microphone off.
 - **Demo — several speakers**: scripted Speaker 1–3 conversation, microphone off.
-- **Live — on-device speech**: pick it on the **Choose engine** screen. Android `createOnDeviceSpeechRecognizer` after you tap Start Listening and allow the mic. If that engine is missing, the screen says **NOT YET AVAILABLE**, Start Listening refuses, and the app does **not** fall back to cloud speech.
-- Optional pause-based speaker labels (**Speaker 1, 2, …**) with **Speaker uncertain** in live mode. You may type a name; the app will not invent one.
+- **Live — on-device speech**: Android `createOnDeviceSpeechRecognizer`, with audio kept on-device. If the phone lacks that engine, Start Listening refuses; it never falls back to cloud speech. Speaker labels remain unknown in this mode.
+- **Live — offline ASR + acoustic speakers**: bundled sherpa-onnx streaming English captions plus rolling acoustic diarization. Anonymous speaker labels are session-only and may arrive late or be uncertain. This experimental mode currently targets arm64-v8a. See `docs/DIARIZATION_ENGINE.md` for model details, footprint, and limitations.
 - Optional local transcript session, off by default: start/stop, show session, delete session, delete saved file. No cloud sync.
 - **Teach me this**: one local mock card with uncertainty wording.
 - Voice-command parser plus **Test voice** for start/stop captions, make it bigger, move subtitles down, teach me this, hide help.
