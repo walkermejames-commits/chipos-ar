@@ -8,10 +8,6 @@ Microphone processing stays on the device. The floating overlay does not save au
 
 This APK provides view-fixed external captions, not room-anchored AR. It does not claim a room scan, LiDAR support or validated S26/XREAL tracking. See `docs/RELEASE_0.3.1.md` for verification and device limitations. The older Unity keyboard prototype displayed mock captions; do not use it to test the Studio or live speech. Older setup instructions below describe earlier releases.
 
-## Corrected glasses controls: ChipOS Studio 0.3.1
-
-The 0.3.1 release adds **Glasses remote**: the phone remains a touch controller and a separate external presentation display can show captions by themselves. Start and stop the microphone, resize and move captions, hide them, and test the external display without turning the mic on. This works when Android exposes the connected glasses as a separate presentation display. If the phone only mirrors, Android cannot show independent phone controls; the remote explains that limit. This is view-fixed caption output, not room-anchored AR. See `docs/RELEASE_0.3.1.md`.
-
 The older **ChipOS Mark II Unity first build** is an unconnected keyboard demo with simulated text like “Caption frame received.” It is not the Studio, speech recognition, or AR. Do not use that APK for glasses testing.
 
 An accessibility-first augmented-reality environment for **XREAL Air 2 Ultra** glasses.
