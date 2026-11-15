@@ -1,12 +1,12 @@
 # ChipOS AR
 
-## Current Android build: ChipOS Studio 0.3.1
+## Current Android build: ChipOS Studio 0.3.2
 
 Native teal-and-brass creative studio with seven project areas, private editable project cards, offline English subtitles and acoustic speaker diarization. **Glasses remote** keeps touch controls on the phone and shows captions in a separate external presentation display when Android supports it. The remote can connect/disconnect, start/stop speech, size and position captions, hide/show them, and run a labeled display check with the microphone off. If the glasses mirror instead of extending the display, the remote explains the limitation. Open **Captions** for the complete caption settings, or **Float** for a movable overlay over other phone apps.
 
 Microphone processing stays on the device. The floating overlay does not save audio or transcripts. In-app transcript saving remains an explicit action. Project information is editable and removable. This experimental APK uses the existing Android test signing certificate.
 
-This APK provides view-fixed external captions, not room-anchored AR. It does not claim a room scan, LiDAR support or validated S26/XREAL tracking. See `docs/RELEASE_0.3.1.md` for verification and device limitations. The older Unity keyboard prototype displayed mock captions; do not use it to test the Studio or live speech. Older setup instructions below describe earlier releases.
+This APK provides view-fixed external captions, not room-anchored AR. It does not claim a room scan, LiDAR support or validated S26/XREAL tracking. See `docs/RELEASE_0.3.2.md` and `docs/SOURCE_UNIFICATION.md` for verification, source roles and device limitations. The older Unity keyboard prototype displayed mock captions; do not use it to test the Studio or live speech. Older setup instructions below describe earlier releases.
 
 The older **ChipOS Mark II Unity first build** is an unconnected keyboard demo with simulated text like “Caption frame received.” It is not the Studio, speech recognition, or AR. Do not use that APK for glasses testing.
 

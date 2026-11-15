@@ -48,6 +48,6 @@ fun GlassesControls(controller: GlassesDisplayController, captions: CaptionLensV
         }
         Text("PHONE PREVIEW · ${speech.textScale.label}", color = Color(0xFF9BD9C6))
         Text(speech.currentLine?.text ?: "Live words appear here after you start the microphone. Use Test display to check the glasses without listening.", color = Color.White, fontSize = (22 * speech.textScale.multiplier).sp)
-        Text("ChipOS Studio 0.3.1 · If you see ‘ChipOS Mark II’ and ‘Caption frame received’, close the older prototype and open ChipOS Studio.", color = Color(0xFFB3C6C1))
+        Text("ChipOS Studio 0.3.2 · If you see ‘ChipOS Mark II’ and ‘Caption frame received’, close the older prototype and open ChipOS Studio.", color = Color(0xFFB3C6C1))
     }
 }

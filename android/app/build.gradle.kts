@@ -6,14 +6,14 @@ plugins {
 
 android {
     namespace = "com.chipos.ar"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.chipos.ar"
         minSdk = 31
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.3.1-glasses-remote"
+        versionCode = 11
+        versionName = "0.3.2-glasses-remote"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
@@ -23,6 +23,9 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // This project distributes experimental test APKs, not Play Store builds.
+            // Keep the established test certificate so users can install updates in place.
+            signingConfig = signingConfigs.getByName("debug")
             ndk {
                 abiFilters += "arm64-v8a"
             }
