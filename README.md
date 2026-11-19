@@ -6,9 +6,9 @@ Native teal-and-brass creative studio with seven project areas, private editable
 
 Microphone processing stays on the device. The floating overlay does not save audio or transcripts. In-app transcript saving remains an explicit action. Project information is editable and removable. This experimental APK uses the existing Android test signing certificate.
 
-This APK provides view-fixed external captions, not room-anchored AR. It does not claim a room scan, LiDAR support or validated S26/XREAL tracking. See `docs/RELEASE_0.3.2.md` and `docs/SOURCE_UNIFICATION.md` for verification, source roles and device limitations. The older Unity keyboard prototype displayed mock captions; do not use it to test the Studio or live speech. Older setup instructions below describe earlier releases.
+This native APK provides view-fixed external captions, not room-anchored AR. The current Unity/XREAL experimental release is [0.1.21 (version code 21)](https://github.com/walkermejames-commits/james-os-apk-repo/releases/tag/chipos-markii-unity-ar-0.1.21). Its startup controls were visible and tappable in the Samsung S26 API 36 x86_64 emulator. Mapping correctly reported that spatial tracking is unavailable there; captions reported that the ARM64 speech runtime cannot run on the emulator. This verifies the UI and unsupported-feature messages only. Microphone capture, recognition accuracy, diarization, real mapping, XREAL see-through and room anchors remain unverified on the physical S26 with Air 2 Ultra. See `docs/UNITY_RELEASE_0.1.21.md` and `docs/SOURCE_UNIFICATION.md` for exact build and verification details.
 
-The older **ChipOS Mark II Unity first build** is an unconnected keyboard demo with simulated text like “Caption frame received.” It is not the Studio, speech recognition, or AR. Do not use that APK for glasses testing.
+The archived **ChipOS Mark II Unity first build** was a keyboard demo with simulated text like “Caption frame received.” The current Android player does not use that simulated text path; it calls the offline speech bridge after the user starts the microphone.
 
 An accessibility-first augmented-reality environment for **XREAL Air 2 Ultra** glasses.
 

@@ -1,0 +1,17 @@
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+Artifacts/
+.utmp/
+**/.gradle/
+**/build/
+LegacyModelArchive/
+Packages/com.xreal.xr/
+Assets/Plugins/Android/nractivitylife_6-release.aar
+Assets/Plugins/Android/nractivitylife_6-release.aar.meta

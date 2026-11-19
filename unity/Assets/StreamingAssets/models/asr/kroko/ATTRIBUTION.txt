@@ -1,0 +1,5 @@
+English Kroko streaming Zipformer, converted for sherpa-onnx.
+Source: https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-en-kroko-2025-08-06
+Upstream model project: https://huggingface.co/Banafo/Kroko-ASR
+Model license: CC BY-SA 4.0 (community model); https://creativecommons.org/licenses/by-sa/4.0/
+This is a third-party model; it is not a ChipOS speaker identity or person-recognition model.
